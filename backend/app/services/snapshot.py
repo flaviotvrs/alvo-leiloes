@@ -31,7 +31,7 @@ def montar_snapshot(db: Session, avaliacao: Avaliacao) -> Snapshot:
         if c.valor_numerico is not None
     }
 
-    parametros_db = db.query(ParametroUsuario).filter_by(usuario_id=avaliacao.responsavel_id).one_or_none()
+    parametros_db = db.query(ParametroUsuario).filter_by(usuario_id=avaliacao.usuario_id).one_or_none()
     if parametros_db is None:
         parametros_db = db.query(ParametroUsuario).first()
     parametros = ParametrosSnapshot(

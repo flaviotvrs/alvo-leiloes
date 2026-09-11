@@ -94,7 +94,6 @@ class LoteReadOnly(BaseModel):
 class AvaliacaoDTO(BaseModel):
     id: UUID
     etapa: Etapa
-    responsavel_id: UUID | None
     etapa_desde: datetime
     motivo_descarte: str | None
     teto_lance: Decimal | None

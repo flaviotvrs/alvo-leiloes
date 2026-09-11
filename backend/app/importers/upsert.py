@@ -4,9 +4,7 @@ from datetime import UTC, datetime
 from sqlalchemy.orm import Session
 
 from app.importers.base import LoteNormalizado
-from app.models.avaliacao import Avaliacao
-from app.models.enums import Etapa, FonteLeilao, StatusImportacao, TipoEvento
-from app.models.evento_avaliacao import EventoAvaliacao
+from app.models.enums import FonteLeilao, StatusImportacao
 from app.models.imovel import Imovel
 from app.models.importacao import Importacao
 from app.models.lote_leilao import LoteLeilao
@@ -71,7 +69,7 @@ def aplicar_importacao(
             )
             if lote_existente is None:
                 criados += 1
-                _criar_lote(db, fonte=fonte, lote=lote, importacao_id=importacao.id, executada_por=executada_por)
+                _criar_lote(db, fonte=fonte, lote=lote, importacao_id=importacao.id)
             else:
                 mudou = _atualizar_lote(lote_existente, lote)
                 lote_existente.ativo = True
@@ -106,7 +104,6 @@ def _criar_lote(
     fonte: FonteLeilao,
     lote: LoteNormalizado,
     importacao_id: uuid.UUID,
-    executada_por: uuid.UUID | None,
 ) -> None:
     imovel = Imovel(
         uf=lote.uf,
@@ -143,19 +140,6 @@ def _criar_lote(
     )
     db.add(lote_db)
     db.flush()
-
-    avaliacao = Avaliacao(lote_id=lote_db.id, etapa=Etapa.NAO_AVALIADO)
-    db.add(avaliacao)
-    db.flush()
-
-    db.add(
-        EventoAvaliacao(
-            avaliacao_id=avaliacao.id,
-            tipo=TipoEvento.IMPORTACAO,
-            ator_id=executada_por,
-            payload={"fonte": fonte.value, "codigo_externo": lote.codigo_externo},
-        )
-    )
 
 
 def _atualizar_lote(lote_existente: LoteLeilao, novo: LoteNormalizado) -> bool:

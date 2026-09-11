@@ -43,13 +43,14 @@ def _pilula(db: Session, avaliacao: Avaliacao, resumo) -> str:
 
 @router.get("/funil", response_model=FunilResponse)
 def funil(
-    db: Session = Depends(get_db), _usuario: Usuario = Depends(get_current_usuario)
+    db: Session = Depends(get_db), usuario: Usuario = Depends(get_current_usuario)
 ) -> FunilResponse:
     avaliacoes_ativas = (
         db.query(Avaliacao, LoteLeilao, Imovel)
         .join(LoteLeilao, Avaliacao.lote_id == LoteLeilao.id)
         .join(Imovel, LoteLeilao.imovel_id == Imovel.id)
         .filter(LoteLeilao.ativo.is_(True))
+        .filter(Avaliacao.usuario_id == usuario.id)
         .all()
     )
 

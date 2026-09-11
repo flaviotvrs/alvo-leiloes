@@ -32,9 +32,9 @@ TRANSICOES_VALIDAS: dict[Etapa, set[Etapa]] = {
 }
 
 
-def _get_avaliacao_ou_404(db: Session, avaliacao_id: UUID) -> Avaliacao:
+def _get_avaliacao_ou_404(db: Session, avaliacao_id: UUID, usuario: Usuario) -> Avaliacao:
     avaliacao = db.get(Avaliacao, avaliacao_id)
-    if avaliacao is None:
+    if avaliacao is None or avaliacao.usuario_id != usuario.id:
         raise HTTPException(status_code=404, detail="Avaliação não encontrada")
     return avaliacao
 
@@ -47,7 +47,7 @@ def gravar_campo(
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(get_current_usuario),
 ) -> Resultado:
-    avaliacao = _get_avaliacao_ou_404(db, avaliacao_id)
+    avaliacao = _get_avaliacao_ou_404(db, avaliacao_id, usuario)
     if chave not in CHAVES_CAMPO_MVP1:
         raise HTTPException(status_code=400, detail=f"Campo desconhecido: {chave}")
 
@@ -104,7 +104,7 @@ def aceitar_sugestao(
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(get_current_usuario),
 ) -> Resultado:
-    avaliacao = _get_avaliacao_ou_404(db, avaliacao_id)
+    avaliacao = _get_avaliacao_ou_404(db, avaliacao_id, usuario)
     campo = db.query(CampoAvaliacao).filter_by(avaliacao_id=avaliacao_id, chave=chave).one_or_none()
     if campo is None or campo.sugestao_valor is None:
         raise HTTPException(status_code=400, detail="Não há sugestão de automação para este campo")
@@ -137,9 +137,9 @@ def atualizar_avaliacao(
     avaliacao_id: UUID,
     body: PatchAvaliacaoRequest,
     db: Session = Depends(get_db),
-    _usuario: Usuario = Depends(get_current_usuario),
+    usuario: Usuario = Depends(get_current_usuario),
 ) -> dict[str, str]:
-    avaliacao = _get_avaliacao_ou_404(db, avaliacao_id)
+    avaliacao = _get_avaliacao_ou_404(db, avaliacao_id, usuario)
     if body.anotacoes is not None:
         avaliacao.anotacoes = body.anotacoes
     if body.checklist is not None:
@@ -157,7 +157,7 @@ def mover_etapa(
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(get_current_usuario),
 ) -> Resultado:
-    avaliacao = _get_avaliacao_ou_404(db, avaliacao_id)
+    avaliacao = _get_avaliacao_ou_404(db, avaliacao_id, usuario)
     permitidas = TRANSICOES_VALIDAS.get(avaliacao.etapa, set())
     if body.etapa not in permitidas:
         raise HTTPException(
@@ -194,7 +194,7 @@ def descartar(
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(get_current_usuario),
 ) -> dict[str, str]:
-    avaliacao = _get_avaliacao_ou_404(db, avaliacao_id)
+    avaliacao = _get_avaliacao_ou_404(db, avaliacao_id, usuario)
     etapa_anterior = avaliacao.etapa
     avaliacao.etapa = Etapa.DESCARTADO
     avaliacao.motivo_descarte = body.motivo
@@ -215,9 +215,9 @@ def descartar(
 def calculo(
     avaliacao_id: UUID,
     db: Session = Depends(get_db),
-    _usuario: Usuario = Depends(get_current_usuario),
+    usuario: Usuario = Depends(get_current_usuario),
 ) -> Resultado:
-    avaliacao = _get_avaliacao_ou_404(db, avaliacao_id)
+    avaliacao = _get_avaliacao_ou_404(db, avaliacao_id, usuario)
     return calcular(montar_snapshot(db, avaliacao))
 
 
@@ -225,9 +225,9 @@ def calculo(
 def eventos(
     avaliacao_id: UUID,
     db: Session = Depends(get_db),
-    _usuario: Usuario = Depends(get_current_usuario),
+    usuario: Usuario = Depends(get_current_usuario),
 ) -> list[EventoDTO]:
-    _get_avaliacao_ou_404(db, avaliacao_id)
+    _get_avaliacao_ou_404(db, avaliacao_id, usuario)
     linhas = (
         db.query(EventoAvaliacao)
         .filter_by(avaliacao_id=avaliacao_id)
