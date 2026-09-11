@@ -14,6 +14,7 @@ from app.models.lote_leilao import LoteLeilao
 from app.models.parametro import ParametroUsuario
 from app.models.usuario import Usuario
 from app.seeds.referencias import carregar_emolumentos, carregar_itbi
+from app.services.avaliacoes import obter_ou_criar_avaliacao
 
 FIXTURE_CAIXA = Path(__file__).parent / "fixtures" / "sample_caixa.xlsx"
 
@@ -47,7 +48,7 @@ def _avancar_funil_de_exemplo(db, usuario: Usuario) -> None:
         return
 
     def avaliacao_de(lote: LoteLeilao) -> Avaliacao:
-        return db.query(Avaliacao).filter_by(lote_id=lote.id).one()
+        return obter_ou_criar_avaliacao(db, lote.id, usuario.id)
 
     def preencher(avaliacao: Avaliacao, chave: str, valor: Decimal, origem: OrigemCampo = OrigemCampo.MANUAL) -> None:
         ja_existe = db.query(CampoAvaliacao).filter_by(avaliacao_id=avaliacao.id, chave=chave).first()
@@ -67,7 +68,6 @@ def _avancar_funil_de_exemplo(db, usuario: Usuario) -> None:
     # 1) o imóvel do exemplo do README, com a ficha quase completa, em análise financeira
     a1 = avaliacao_de(lotes[0])
     a1.etapa = Etapa.ANALISE_FINANCEIRA
-    a1.responsavel_id = usuario.id
     for chave, valor in (
         ("valor_mercado", "168000"),
         ("iptu_atraso", "3400"),
@@ -80,13 +80,11 @@ def _avancar_funil_de_exemplo(db, usuario: Usuario) -> None:
     # 2) pesquisa de campo em andamento, poucos campos preenchidos
     a2 = avaliacao_de(lotes[1])
     a2.etapa = Etapa.PESQUISA_CAMPO
-    a2.responsavel_id = usuario.id
     preencher(a2, "iptu_atraso", Decimal("1200"))
 
     # 3) decisão pendente, ficha completa
     a3 = avaliacao_de(lotes[2])
     a3.etapa = Etapa.DECISAO
-    a3.responsavel_id = usuario.id
     for chave, valor in (
         ("valor_mercado", "150000"),
         ("iptu_atraso", "0"),
@@ -99,7 +97,6 @@ def _avancar_funil_de_exemplo(db, usuario: Usuario) -> None:
     # 4) aprovado para lance, teto já definido
     a4 = avaliacao_de(lotes[3])
     a4.etapa = Etapa.APROVADO_LANCE
-    a4.responsavel_id = usuario.id
     a4.teto_lance = Decimal("115000")
     for chave, valor in (
         ("valor_mercado", "150000"),
@@ -114,7 +111,6 @@ def _avancar_funil_de_exemplo(db, usuario: Usuario) -> None:
     a5 = avaliacao_de(lotes[4])
     a5.etapa = Etapa.DESCARTADO
     a5.motivo_descarte = "Margem abaixo do piso de 20% após pesquisa de campo."
-    a5.responsavel_id = usuario.id
 
     db.commit()
 

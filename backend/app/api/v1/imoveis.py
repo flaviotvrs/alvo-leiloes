@@ -2,7 +2,7 @@ from decimal import Decimal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import exists
+from sqlalchemy import exists, or_
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_usuario, get_db
@@ -22,6 +22,7 @@ from app.schemas.api import (
     LoteReadOnly,
 )
 from app.schemas.api import AvaliacaoDTO
+from app.services.avaliacoes import obter_ou_criar_avaliacao, obter_ou_criar_avaliacoes
 from app.services.calculo import calcular
 from app.services.resumo_campos import CHAVES_RESUMO, resumo_de_varias_avaliacoes
 from app.services.snapshot import montar_snapshot
@@ -45,12 +46,15 @@ def listar_imoveis(
     cursor: str | None = None,
     limit: int = Query(50, le=200),
     db: Session = Depends(get_db),
-    _usuario: Usuario = Depends(get_current_usuario),
+    usuario: Usuario = Depends(get_current_usuario),
 ) -> ImoveisListResponse:
     query = (
         db.query(LoteLeilao, Imovel, Avaliacao)
         .join(Imovel, LoteLeilao.imovel_id == Imovel.id)
-        .join(Avaliacao, Avaliacao.lote_id == LoteLeilao.id)
+        .outerjoin(
+            Avaliacao,
+            (Avaliacao.lote_id == LoteLeilao.id) & (Avaliacao.usuario_id == usuario.id),
+        )
         .filter(LoteLeilao.ativo.is_(True))
     )
     if uf:
@@ -76,7 +80,10 @@ def listar_imoveis(
     if desconto_min is not None:
         query = query.filter(LoteLeilao.desconto_pct >= desconto_min)
     if etapa:
-        query = query.filter(Avaliacao.etapa.in_(etapa))
+        condicoes = [Avaliacao.etapa.in_(etapa)]
+        if Etapa.NAO_AVALIADO in etapa:
+            condicoes.append(Avaliacao.id.is_(None))
+        query = query.filter(or_(*condicoes))
     if sem_dados_campo:
         tem_campo = exists().where(
             CampoAvaliacao.avaliacao_id == Avaliacao.id,
@@ -90,6 +97,15 @@ def listar_imoveis(
     linhas = query.offset(offset).limit(limit + 1).all()
     tem_proxima_pagina = len(linhas) > limit
     linhas = linhas[:limit]
+
+    lotes_sem_avaliacao = [lote.id for lote, _, avaliacao in linhas if avaliacao is None]
+    if lotes_sem_avaliacao:
+        avaliacoes_criadas = obter_ou_criar_avaliacoes(db, lotes_sem_avaliacao, usuario.id)
+        db.commit()
+        linhas = [
+            (lote, imovel, avaliacao if avaliacao is not None else avaliacoes_criadas[lote.id])
+            for lote, imovel, avaliacao in linhas
+        ]
 
     resumos = resumo_de_varias_avaliacoes(db, [a.id for _, _, a in linhas])
 
@@ -142,13 +158,14 @@ def facetas(
 def ficha(
     lote_id: UUID,
     db: Session = Depends(get_db),
-    _usuario: Usuario = Depends(get_current_usuario),
+    usuario: Usuario = Depends(get_current_usuario),
 ) -> FichaResponse:
     lote = db.get(LoteLeilao, lote_id)
     if lote is None:
         raise HTTPException(status_code=404, detail="Lote não encontrado")
     imovel = db.get(Imovel, lote.imovel_id)
-    avaliacao = db.query(Avaliacao).filter_by(lote_id=lote.id).one()
+    avaliacao = obter_ou_criar_avaliacao(db, lote.id, usuario.id)
+    db.commit()
 
     campos_db = db.query(CampoAvaliacao).filter_by(avaliacao_id=avaliacao.id).all()
     campos = {
@@ -200,7 +217,6 @@ def ficha(
         avaliacao=AvaliacaoDTO(
             id=avaliacao.id,
             etapa=avaliacao.etapa,
-            responsavel_id=avaliacao.responsavel_id,
             etapa_desde=avaliacao.etapa_desde,
             motivo_descarte=avaliacao.motivo_descarte,
             teto_lance=avaliacao.teto_lance,

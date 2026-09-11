@@ -24,15 +24,23 @@ def _escrever_planilha(caminho: Path, codigos_externos: list[str]) -> None:
     livro.save(caminho)
 
 
-def test_importacao_cria_15_lotes_com_avaliacao_nao_avaliada(db_session):
-    importacao = importar_caixa(db_session, FIXTURE)
+def test_importacao_cria_15_lotes_sem_avaliacao(db_session, tmp_path):
+    from app.models.avaliacao import Avaliacao
+
+    arquivo = tmp_path / "carga_15_lotes.xlsx"
+    _escrever_planilha(arquivo, [f"NOVO-{i}" for i in range(15)])
+
+    importacao = importar_caixa(db_session, arquivo)
 
     assert importacao.criados == 15
     assert importacao.atualizados == 0
     assert importacao.erros == []
-    lotes = db_session.query(LoteLeilao).all()
+    lotes = db_session.query(LoteLeilao).filter(LoteLeilao.codigo_externo.like("NOVO-%")).all()
     assert len(lotes) == 15
     assert all(lote.ativo for lote in lotes)
+    # Avaliacao é dado por usuário, nasce sob demanda no primeiro acesso — não na importação.
+    lote_ids = [lote.id for lote in lotes]
+    assert db_session.query(Avaliacao).filter(Avaliacao.lote_id.in_(lote_ids)).count() == 0
 
 
 def test_reimportar_o_mesmo_arquivo_nao_duplica_nem_reprocessa(db_session):
@@ -49,12 +57,19 @@ def test_reimportar_o_mesmo_arquivo_nao_duplica_nem_reprocessa(db_session):
     assert db_session.query(Importacao).count() == 1
 
 
-def test_reimportacao_nunca_sobrescreve_campo_avaliacao_do_usuario(db_session):
-    from app.models.avaliacao import Avaliacao
+def test_reimportacao_nunca_sobrescreve_campo_avaliacao_do_usuario(db_session, tmp_path):
+    from app.models.usuario import Usuario
+    from app.services.avaliacoes import obter_ou_criar_avaliacao
 
-    importacao = importar_caixa(db_session, FIXTURE)
-    lote = db_session.query(LoteLeilao).filter_by(codigo_externo="8444403570957").one()
-    avaliacao = db_session.query(Avaliacao).filter_by(lote_id=lote.id).one()
+    arquivo = tmp_path / "carga_reimportacao.xlsx"
+    _escrever_planilha(arquivo, ["REIMPORT-1"])
+
+    importacao = importar_caixa(db_session, arquivo)
+    lote = db_session.query(LoteLeilao).filter_by(codigo_externo="REIMPORT-1").one()
+    usuario = Usuario(nome="Teste", email="teste@exemplo.com")
+    db_session.add(usuario)
+    db_session.flush()
+    avaliacao = obter_ou_criar_avaliacao(db_session, lote.id, usuario.id)
     db_session.add(
         CampoAvaliacao(
             avaliacao_id=avaliacao.id,
@@ -66,8 +81,8 @@ def test_reimportacao_nunca_sobrescreve_campo_avaliacao_do_usuario(db_session):
     )
     db_session.commit()
 
-    # reimporta o mesmo arquivo (idempotente) e um novo lote (upsert em cima do existente)
-    importar_caixa(db_session, FIXTURE)
+    # reimporta o mesmo arquivo (idempotente) — upsert não deve tocar em campo_avaliacao
+    importar_caixa(db_session, arquivo)
 
     campo = (
         db_session.query(CampoAvaliacao)
@@ -76,7 +91,7 @@ def test_reimportacao_nunca_sobrescreve_campo_avaliacao_do_usuario(db_session):
     )
     assert campo.valor_numerico == 999999
     assert campo.origem == OrigemCampo.MANUAL
-    assert importacao.criados == 15
+    assert importacao.criados == 1
 
 
 def test_lote_ausente_na_nova_carga_fica_inativo(db_session, tmp_path):

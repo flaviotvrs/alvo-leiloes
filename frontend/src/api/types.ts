@@ -110,7 +110,6 @@ export interface Checklist {
 export interface AvaliacaoDTO {
   id: string;
   etapa: Etapa;
-  responsavel_id: string | null;
   etapa_desde: string;
   motivo_descarte: string | null;
   teto_lance: string | null;
