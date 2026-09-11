@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: theme("colors.page");
+  color: theme("colors.ink");
+  font-family: theme("fontFamily.serif");
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: theme("colors.green");
+  text-decoration: none;
+}
+a:hover {
+  color: theme("colors.greenDark");
+  text-decoration: underline;
+}
+
+input,
+select,
+textarea {
+  font-family: theme("fontFamily.mono");
+}
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid theme("colors.green");
+  outline-offset: -2px;
+}

@@ -1,0 +1,53 @@
+/** Formatação pt-BR conforme docs/README.md "Formatação de número". */
+
+type Num = string | number | null | undefined;
+
+function toNumber(value: Num): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const num = typeof value === "string" ? Number(value) : value;
+  return Number.isNaN(num) ? null : num;
+}
+
+/** "R$ 49.647" — sem centavos; negativo vira "– R$ 11.400" (travessão, não sinal colado). */
+export function formatMoney(value: Num): string {
+  const num = toNumber(value);
+  if (num === null) return "—";
+  const abs = Math.round(Math.abs(num));
+  const formatado = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(abs);
+  return `${num < 0 ? "– " : ""}R$ ${formatado}`;
+}
+
+/** "71,8%" — uma casa decimal, vírgula. `withSign` prefixa "+" quando positivo (ex. "+64,8%"). */
+export function formatPercent(value: Num, opts: { withSign?: boolean } = {}): string {
+  const num = toNumber(value);
+  if (num === null) return "—";
+  const sinal = opts.withSign && num > 0 ? "+" : "";
+  return `${sinal}${num.toFixed(1).replace(".", ",")}%`;
+}
+
+/** "63,96 m²" */
+export function formatArea(value: Num): string {
+  const num = toNumber(value);
+  if (num === null) return "—";
+  return `${num.toFixed(2).replace(".", ",")} m²`;
+}
+
+export function formatDateTime(value: string | null): string {
+  if (!value) return "—";
+  return new Date(value).toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+export function formatDate(value: string | null): string {
+  if (!value) return "—";
+  return new Date(value).toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}

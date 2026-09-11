@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+  body { margin:0; background:#EFEDE7; font-family:'Source Serif 4', Georgia, serif; -webkit-font-smoothing:antialiased; }
+  a { color:#1F6F4A; text-decoration:none; }
+  a:hover { color:#123F2A; text-decoration:underline; }
+  * { box-sizing:border-box; }
+  input, select, textarea { font-family:'IBM Plex Mono', monospace; }
+  input:focus, select:focus, textarea:focus { outline:2px solid #1F6F4A; outline-offset:-2px; }
+</style>
+</helmet>
+<div style="min-height:100vh; background:#EFEDE7; color:#1B1A16;">
+
+  <div style="display:flex; align-items:center; justify-content:space-between; gap:32px; padding:0 28px; height:60px; background:#1B1A16; color:#F2F0EB; position:sticky; top:0; z-index:20;">
+    <div style="display:flex; align-items:center; gap:28px;">
+      <div style="display:flex; align-items:baseline; gap:8px;">
+        <span style="font-size:20px; font-weight:600; letter-spacing:0.2em;">ALVO</span>
+        <span style="font-size:11px; letter-spacing:0.22em; text-transform:uppercase; color:#9C978A;">Leilões</span>
+      </div>
+      <div style="display:flex; gap:2px;">
+        <sc-for list="{{ nav }}" as="n" hint-placeholder-count="2">
+          <button onClick="{{ n.go }}" style="border:0; background:{{ n.bg }}; color:{{ n.fg }}; font-family:'Source Serif 4', Georgia, serif; font-size:13.5px; padding:7px 14px; border-radius:3px; cursor:pointer;">{{ n.label }}</button>
+        </sc-for>
+      </div>
+    </div>
+    <div style="display:flex; align-items:center; gap:18px;">
+      <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:#9C978A; letter-spacing:0.04em;">981 IMÓVEIS COM ANÁLISE NA BASE</div>
+      <div style="display:flex; align-items:center; gap:9px;">
+        <div style="width:27px; height:27px; border-radius:50%; background:#1F6F4A; color:#fff; display:grid; place-items:center; font-size:11px; font-weight:600; font-family:'IBM Plex Mono', monospace;">RS</div>
+        <span style="font-size:13px; color:#D7D3C8;">Renata Salles</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ TRIAGEM ══════════ -->
+  <sc-if value="{{ isTriagem }}" hint-placeholder-val="{{ true }}">
+  <div style="padding:24px 28px 60px;">
+
+    <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:24px; margin-bottom:18px;">
+      <div>
+        <div style="font-family:'IBM Plex Mono', monospace; font-size:10.5px; letter-spacing:0.18em; text-transform:uppercase; color:#7C7768; margin-bottom:6px;">Fila de triagem</div>
+        <h1 style="margin:0; font-size:30px; font-weight:600; letter-spacing:-0.015em;">O que vale a pena visitar e pesquisar</h1>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(4,auto); gap:26px;">
+        <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
+          <div style="text-align:right;">
+            <div style="font-family:'IBM Plex Mono', monospace; font-size:9.5px; letter-spacing:0.13em; text-transform:uppercase; color:#7C7768;">{{ k.label }}</div>
+            <div style="font-size:23px; font-weight:600; letter-spacing:-0.01em; margin-top:3px; color:{{ k.color }};">{{ k.value }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="background:#FCFBF8; border:1px solid #DDD9CF; border-radius:4px; padding:16px 18px; margin-bottom:14px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:15px;">
+        <span style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:0.16em; text-transform:uppercase; color:#7C7768;">Buscar imóveis</span>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button onClick="{{ toggleSemDados }}" style="border:1px solid {{ semDadosBd }}; background:{{ semDadosBg }}; color:{{ semDadosFg }}; font-family:'Source Serif 4', Georgia, serif; font-size:12.5px; padding:6px 12px; border-radius:99px; cursor:pointer;">Só sem dados de campo</button>
+          <button onClick="{{ limpar }}" style="border:1px solid #C9C4B6; background:transparent; color:#3D3A31; font-family:'Source Serif 4', Georgia, serif; font-size:12.5px; padding:6px 12px; border-radius:99px; cursor:pointer;" style-hover="background:#E6E3DA;">Limpar filtros</button>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:16px 18px;">
+        <div>
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:9.5px; letter-spacing:0.13em; text-transform:uppercase; color:#7C7768; margin-bottom:6px;">Estado <span style="text-transform:none; letter-spacing:0; color:#8A8577;">· só MG importado</span></div>
+          <select value="{{ uf }}" onChange="{{ setUf }}" style="width:100%; min-width:0; font-size:13px; padding:7px 9px; border:1px solid #C9C4B6; border-radius:3px; background:#fff; color:#1B1A16;">
+            <sc-for list="{{ ufs }}" as="o" hint-placeholder-count="2">
+              <option value="{{ o }}">{{ o }}</option>
+            </sc-for>
+          </select>
+        </div>
+        <div>
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:9.5px; letter-spacing:0.13em; text-transform:uppercase; color:#7C7768; margin-bottom:6px;">Cidade</div>
+          <select value="{{ cidade }}" onChange="{{ setCidade }}" style="width:100%; min-width:0; font-size:13px; padding:7px 9px; border:1px solid #C9C4B6; border-radius:3px; background:#fff; color:#1B1A16;">
+            <sc-for list="{{ cidades }}" as="o" hint-placeholder-count="4">
+              <option value="{{ o }}">{{ o }}</option>
+            </sc-for>
+          </select>
+        </div>
+        <div>
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:9.5px; letter-spacing:0.13em; text-transform:uppercase; color:#7C7768; margin-bottom:6px;">Bairro</div>
+          <input value="{{ bairro }}" onChange="{{ setBairro }}" placeholder="parte do nome" style="width:100%; min-width:0; font-size:13px; padding:7px 9px; border:1px solid #C9C4B6; border-radius:3px; background:#fff; color:#1B1A16;">
+        </div>
+        <div>
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:9.5px; letter-spacing:0.13em; text-transform:uppercase; color:#7C7768; margin-bottom:6px;">Desconto mínimo · valor da planilha</div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <input type="range" min="0" max="75" step="5" value="{{ descontoMin }}" onChange="{{ setDesconto }}" style="flex:1; min-width:0; accent-color:#1F6F4A;">
+            <span style="font-family:'IBM Plex Mono', monospace; font-size:12.5px; font-weight:600; color:#1F6F4A; white-space:nowrap;">{{ descontoMinTxt }}</span>
+          </div>
+        </div>
+
+        <div style="grid-column:span 2;">
+          <div style="display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:6px;">
+            <span style="font-family:'IBM Plex Mono', monospace; font-size:9.5px; letter-spacing:0.13em; text-transform:uppercase; color:#7C7768;">Faixa de preço</span>
+            <span style="font-family:'IBM Plex Mono', monospace; font-size:12px;">{{ precoMinTxt }} <span style="color:#8A8577;">até</span> {{ precoMaxTxt }}</span>
+          </div>
+          <div style="position:relative; height:4px; background:#E4E0D6; border-radius:2px; margin:9px 0 4px;">
+            <div style="position:absolute; top:0; bottom:0; left:{{ bandaLeft }}; right:{{ bandaRight }}; background:#1F6F4A; border-radius:2px;"></div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <input type="range" min="0" max="1600000" step="10000" value="{{ precoMin }}" onChange="{{ setPrecoMin }}" style="width:100%; min-width:0; accent-color:#1F6F4A;">
+            <input type="range" min="0" max="1600000" step="10000" value="{{ precoMax }}" onChange="{{ setPrecoMax }}" style="width:100%; min-width:0; accent-color:#1F6F4A;">
+          </div>
+        </div>
+        <div style="grid-column:span 2;">
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:9.5px; letter-spacing:0.13em; text-transform:uppercase; color:#7C7768; margin-bottom:6px;">Tipo de imóvel</div>
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <sc-for list="{{ optTipos }}" as="o" hint-placeholder-count="4">
+              <button onClick="{{ o.go }}" style="border:1px solid {{ o.bd }}; background:{{ o.bg }}; color:{{ o.fg }}; font-family:'Source Serif 4', Georgia, serif; font-size:12.5px; padding:6px 13px; border-radius:99px; cursor:pointer;">{{ o.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="grid-column:span 2;">
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:9.5px; letter-spacing:0.13em; text-transform:uppercase; color:#7C7768; margin-bottom:6px;">Financiamento</div>
+          <div style="display:flex; gap:5px;">
+            <sc-for list="{{ optFin }}" as="o" hint-placeholder-count="3">
+              <button onClick="{{ o.go }}" style="flex:1; min-width:0; border:1px solid {{ o.bd }}; background:{{ o.bg }}; color:{{ o.fg }}; font-family:'Source Serif 4', Georgia, serif; font-size:12.5px; padding:6px 8px; border-radius:3px; cursor:pointer;">{{ o.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+        <div style="grid-column:span 2;">
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:9.5px; letter-spacing:0.13em; text-transform:uppercase; color:#7C7768; margin-bottom:6px;">FGTS <span style="text-transform:none; letter-spacing:0; color:#8A8577;">· dado manual, não vem na planilha</span></div>
+          <div style="display:flex; gap:5px;">
+            <sc-for list="{{ optFgts }}" as="o" hint-placeholder-count="3">
+              <button onClick="{{ o.go }}" style="flex:1; min-width:0; border:1px solid {{ o.bd }}; background:{{ o.bg }}; color:{{ o.fg }}; font-family:'Source Serif 4', Georgia, serif; font-size:12.5px; padding:6px 8px; border-radius:3px; cursor:pointer;">{{ o.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:12px;">
+      <div style="font-size:13px; color:#5C584C; text-wrap:pretty;">{{ resumoBusca }}</div>
+      <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:#7C7768; white-space:nowrap;">{{ contagem }}</div>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding:8px 2px 14px; font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:#7C7768;">
+      <span>Procedência do dado:</span>
+      <sc-for list="{{ legenda }}" as="g" hint-placeholder-count="4">
+        <span style="display:inline-flex; align-items:center; gap:6px;">
+          <span style="width:9px; height:9px; border-radius:2px; background:{{ g.cor }}; border:1px {{ g.borda }} {{ g.bordaCor }};"></span>{{ g.label }}
+        </span>
+      </sc-for>
+    </div>
+
+    <div style="border:1px solid #DDD9CF; border-radius:4px; overflow:hidden; background:#FCFBF8;">
+      <div style="display:grid; grid-template-columns:2.4fr 0.75fr 1fr 1fr 0.7fr 1.15fr 1.35fr 0.95fr; gap:14px; padding:10px 18px; background:#F2F0EB; border-bottom:1px solid #DDD9CF; font-family:'IBM Plex Mono', monospace; font-size:9.5px; letter-spacing:0.13em; text-transform:uppercase; color:#7C7768;">
+        <div>Imóvel · nº Caixa</div><div>Tipo</div><div style="text-align:right;">Preço</div><div style="text-align:right;">Avaliação</div><div style="text-align:right;">Desc.</div><div>Modalidade</div><div>Dados de campo</div><div style="text-align:right;">Triagem</div>
+      </div>
+      <sc-for list="{{ lotes }}" as="l" hint-placeholder-count="8">
+        <div onClick="{{ l.abrir }}" style="display:grid; grid-template-columns:2.4fr 0.75fr 1fr 1fr 0.7fr 1.15fr 1.35fr 0.95fr; gap:14px; align-items:center; padding:{{ rowPad }} 18px; border-bottom:1px solid #EAE7DE; cursor:pointer;" style-hover="background:#F5F3ED;">
+          <div style="min-width:0;">
+            <div style="font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ l.endereco }}</div>
+            <div style="font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:#7C7768; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ l.meta }}</div>
+          </div>
+          <div style="font-size:13px; color:#3D3A31;">{{ l.tipo }}</div>
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:12.5px; text-align:right; font-weight:500;">{{ l.preco }}</div>
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:12.5px; text-align:right; color:#5C584C;">{{ l.avaliacao }}</div>
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:12.5px; text-align:right; font-weight:600; color:{{ l.descColor }};">{{ l.desconto }}</div>
+          <div>
+            <div style="font-size:12px;">{{ l.modalidade }}</div>
+            <div style="font-family:'IBM Plex Mono', monospace; font-size:10px; color:#8A8577; margin-top:2px;">{{ l.financiamento }}</div>
+          </div>
+          <div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <div style="display:flex; gap:3px;">
+                <sc-for list="{{ l.campos }}" as="c" hint-placeholder-count="5">
+                  <span title="{{ c.nome }}" style="width:12px; height:12px; border-radius:2px; background:{{ c.cor }}; border:1px {{ c.borda }} {{ c.bordaCor }};"></span>
+                </sc-for>
+              </div>
+              <span style="font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:{{ l.camposCor }};">{{ l.camposTxt }}</span>
+            </div>
+            <div style="font-size:11px; color:#7C7768; margin-top:3px;">{{ l.camposNota }}</div>
+          </div>
+          <div style="display:flex; justify-content:flex-end; gap:5px;">
+            <button onClick="{{ l.abrir }}" style="border:1px solid #C7D6C9; background:#E6EEE9; color:#1F6F4A; font-family:'Source Serif 4', Georgia, serif; font-size:12.5px; padding:5px 11px; border-radius:3px; cursor:pointer;" style-hover="background:#D9E6DE;">Preencher</button>
+            <button onClick="{{ l.descartar }}" title="Descartar" style="border:1px solid #DDD9CF; background:#F6EFEC; color:#8C2F2F; font-family:'Source Serif 4', Georgia, serif; font-size:12.5px; padding:5px 9px; border-radius:3px; cursor:pointer;" style-hover="background:#F0E2DD;">Corta</button>
+          </div>
+        </div>
+      </sc-for>
+      <sc-if value="{{ semResultados }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:38px 18px; text-align:center; border-bottom:1px solid #EAE7DE;">
+          <div style="font-size:15px; margin-bottom:5px;">Nenhum imóvel importado atende a esses filtros.</div>
+          <div style="font-size:13px; color:#6E6A5E; margin-bottom:14px; text-wrap:pretty;">Tente ampliar a faixa de preço ou reduzir o desconto mínimo.</div>
+          <button onClick="{{ limpar }}" style="border:1px solid #C7D6C9; background:#E6EEE9; color:#1F6F4A; font-family:'Source Serif 4', Georgia, serif; font-size:13px; padding:8px 16px; border-radius:3px; cursor:pointer;" style-hover="background:#D9E6DE;">Limpar filtros</button>
+        </div>
+      </sc-if>
+      <div style="padding:12px 18px; display:flex; justify-content:space-between; align-items:center; font-family:'IBM Plex Mono', monospace; font-size:11px; color:#7C7768;">
+        <span>Ordenado por desconto</span>
+        <span>Nenhuma automação ativa · todos os dados de campo são manuais</span>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ══════════ FICHA ══════════ -->
+  <sc-if value="{{ isFicha }}" hint-placeholder-val="{{ false }}">
+  <div style="padding:22px 28px 60px;">
+    <div style="display:flex; align-items:center; gap:10px; font-family:'IBM Plex Mono', monospace; font-size:11px; color:#7C7768; margin-bottom:16px;">
+      <button onClick="{{ voltar }}" style="border:0; background:transparent; color:#1F6F4A; font-family:'IBM Plex Mono', monospace; font-size:11px; padding:0; cursor:pointer;">← Triagem</button>
+      <span>/</span><span>IMÓVEL {{ ficha.codigo }}</span>
+    </div>
+
+    <div style="display:grid; grid-template-columns:minmax(0,1fr) 352px; gap:20px; align-items:start;">
+      <div style="display:flex; flex-direction:column; gap:20px;">
+
+        <!-- bloco importado -->
+        <div style="background:#FCFBF8; border:1px solid #DDD9CF; border-radius:4px; overflow:hidden;">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; padding:10px 20px; background:#F2F0EB; border-bottom:1px solid #DDD9CF;">
+            <span style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:0.16em; text-transform:uppercase; color:#7C7768;">Dados do imóvel · somente leitura</span>
+            <span style="font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:#8A8577;">importado da planilha da Caixa em 28/08/2026</span>
+          </div>
+          <div style="padding:20px 22px;">
+            <h1 style="margin:0 0 5px; font-size:26px; font-weight:600; letter-spacing:-0.015em; text-wrap:pretty;">{{ ficha.endereco }}</h1>
+            <div style="font-size:13.5px; color:#5C584C;">{{ ficha.local }}</div>
+            <div style="font-size:13px; color:#6E6A5E; margin-top:10px; padding-top:12px; border-top:1px dashed #E0DCD2; text-wrap:pretty;">{{ ficha.descricao }}</div>
+            <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:#DDD9CF; border:1px solid #DDD9CF; border-radius:3px; overflow:hidden; margin-top:16px;">
+              <sc-for list="{{ ficha.metricas }}" as="m" hint-placeholder-count="4">
+                <div style="background:#FCFBF8; padding:13px 15px;">
+                  <div style="font-family:'IBM Plex Mono', monospace; font-size:9.5px; letter-spacing:0.13em; text-transform:uppercase; color:#7C7768;">{{ m.label }}</div>
+                  <div style="font-family:'IBM Plex Mono', monospace; font-size:19px; font-weight:600; margin-top:5px; color:{{ m.color }};">{{ m.value }}</div>
+                  <div style="font-size:11.5px; color:#7C7768; margin-top:2px;">{{ m.hint }}</div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px; margin-top:14px; flex-wrap:wrap;">
+              <span style="font-family:'IBM Plex Mono', monospace; font-size:10.5px; letter-spacing:0.08em; padding:5px 10px; border-radius:99px; background:#E4E0D6; color:#5C584C;">{{ ficha.modalidade }}</span>
+              <span style="font-family:'IBM Plex Mono', monospace; font-size:10.5px; letter-spacing:0.08em; padding:5px 10px; border-radius:99px; background:#E4E0D6; color:#5C584C;">{{ ficha.financiamento }}</span>
+              <a href="#" onClick="{{ noop }}" style="font-family:'IBM Plex Mono', monospace; font-size:11px;">Abrir no site da Caixa ↗</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- bloco manual -->
+        <div style="background:#FCFBF8; border:1px solid #DDD9CF; border-radius:4px; overflow:hidden;">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; padding:10px 20px; background:#F2F0EB; border-bottom:1px solid #DDD9CF;">
+            <span style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:0.16em; text-transform:uppercase; color:#7C7768;">Dados de campo · você preenche</span>
+            <span style="font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:{{ preenchidoCor }};">{{ preenchidoTxt }}</span>
+          </div>
+          <div style="padding:6px 22px 20px;">
+            <sc-for list="{{ campos }}" as="c" hint-placeholder-count="6">
+              <div style="display:grid; grid-template-columns:minmax(170px,236px) minmax(0,1fr); gap:18px; align-items:start; padding:14px 0; border-bottom:1px solid #EFEDE6;">
+                <div>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="width:9px; height:9px; border-radius:2px; background:{{ c.origemCor }}; border:1px {{ c.origemBorda }} {{ c.origemBordaCor }}; flex:none;"></span>
+                    <span style="font-size:13.5px;">{{ c.label }}</span>
+                  </div>
+                  <div style="font-size:11.5px; color:#8A8577; margin-top:3px; padding-left:17px; text-wrap:pretty;">{{ c.hint }}</div>
+                </div>
+                <div>
+                  <div style="display:flex; align-items:center; gap:9px; flex-wrap:wrap;">
+                    <sc-if value="{{ c.isSelect }}" hint-placeholder-val="{{ false }}">
+                      <select value="{{ c.value }}" onChange="{{ c.onChange }}" style="width:100%; max-width:260px; min-width:0; font-size:13px; padding:7px 9px; border:1px solid #C9C4B6; border-radius:3px; background:#fff; color:#1B1A16;">
+                        <sc-for list="{{ c.opcoes }}" as="o" hint-placeholder-count="3">
+                          <option value="{{ o }}">{{ o }}</option>
+                        </sc-for>
+                      </select>
+                    </sc-if>
+                    <sc-if value="{{ c.isText }}" hint-placeholder-val="{{ true }}">
+                      <input value="{{ c.value }}" onChange="{{ c.onChange }}" placeholder="{{ c.placeholder }}" style="width:{{ c.largura }}; max-width:100%; min-width:0; font-size:13px; padding:7px 9px; border:1px solid {{ c.inputBorda }}; border-radius:3px; background:{{ c.inputBg }}; color:#1B1A16; text-align:{{ c.align }};">
+                    </sc-if>
+                    <span style="font-family:'IBM Plex Mono', monospace; font-size:9.5px; letter-spacing:0.1em; text-transform:uppercase; padding:3px 8px; border-radius:99px; background:{{ c.chipBg }}; color:{{ c.chipFg }};">{{ c.chip }}</span>
+                    <sc-if value="{{ c.temSugestao }}" hint-placeholder-val="{{ false }}">
+                      <span style="display:inline-flex; align-items:center; gap:8px; font-size:12px; color:#8A6B14;">
+                        {{ c.sugestaoTxt }}
+                        <button onClick="{{ c.aplicar }}" style="border:1px solid #E0D3AC; background:#F7EFDC; color:#8A6B14; font-family:'Source Serif 4', Georgia, serif; font-size:12px; padding:3px 9px; border-radius:3px; cursor:pointer;" style-hover="background:#F0E5C9;">Usar valor da automação</button>
+                      </span>
+                    </sc-if>
+                  </div>
+                  <sc-if value="{{ c.temAviso }}" hint-placeholder-val="{{ false }}">
+                    <div style="font-size:12px; color:#8C2F2F; margin-top:6px;">{{ c.aviso }}</div>
+                  </sc-if>
+                </div>
+              </div>
+            </sc-for>
+
+            <div style="padding:16px 0 0;">
+              <div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:#7C7768; margin-bottom:7px;">Anotações da visita</div>
+              <textarea value="{{ nota }}" onChange="{{ setNota }}" placeholder="O que você viu no local, com quem falou, o que ainda falta confirmar." style="width:100%; min-height:74px; font-size:13px; line-height:1.5; padding:10px; border:1px solid #C9C4B6; border-radius:3px; background:#fff; resize:vertical;"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- conta -->
+        <div style="background:#FCFBF8; border:1px solid #DDD9CF; border-radius:4px; padding:18px 22px;">
+          <div style="display:flex; align-items:baseline; justify-content:space-between; gap:16px; margin-bottom:14px;">
+            <span style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:0.16em; text-transform:uppercase; color:#7C7768;">Conta do negócio</span>
+            <span style="font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:#8A8577;">recalculada a cada campo preenchido</span>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:26px; align-items:start;">
+            <div>
+              <sc-for list="{{ conta }}" as="c" hint-placeholder-count="6">
+                <div style="display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px dashed #E4E0D6;">
+                  <span style="font-size:13px; color:{{ c.color }};">{{ c.label }}</span>
+                  <span style="font-family:'IBM Plex Mono', monospace; font-size:13px; font-weight:{{ c.weight }}; color:{{ c.color }}; white-space:nowrap;">{{ c.value }}</span>
+                </div>
+              </sc-for>
+              <div style="display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding-top:12px;">
+                <span style="font-size:13.5px; font-weight:600;">Custo total até a revenda</span>
+                <span style="font-family:'IBM Plex Mono', monospace; font-size:17px; font-weight:600; white-space:nowrap;">{{ custoTotal }}</span>
+              </div>
+            </div>
+            <div style="background:{{ resultadoBg }}; border-radius:3px; padding:16px 18px;">
+              <div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:0.13em; text-transform:uppercase; color:{{ resultadoFg }};">Margem sobre o valor de mercado</div>
+              <div style="font-family:'IBM Plex Mono', monospace; font-size:30px; font-weight:600; color:{{ resultadoFg }}; margin-top:6px;">{{ margem }}</div>
+              <div style="font-size:12.5px; color:{{ resultadoFg }}; margin-top:6px; text-wrap:pretty;">{{ resultadoNota }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- coluna direita -->
+      <div style="display:flex; flex-direction:column; gap:16px; position:sticky; top:76px;">
+        <div style="background:#1B1A16; color:#F2F0EB; border-radius:4px; padding:18px 20px;">
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:0.16em; text-transform:uppercase; color:#9C978A;">Etapa atual</div>
+          <div style="font-size:19px; font-weight:600; margin-top:6px;">Pesquisa de campo</div>
+          <div style="font-size:12.5px; color:#B5B0A2; margin-top:4px;">Renata Salles · há 2 dias nesta etapa</div>
+          <div style="display:flex; gap:3px; margin-top:14px;">
+            <sc-for list="{{ etapasBarra }}" as="e" hint-placeholder-count="5">
+              <div title="{{ e.nome }}" style="flex:1; height:4px; border-radius:2px; background:{{ e.cor }};"></div>
+            </sc-for>
+          </div>
+          <div style="display:flex; gap:8px; margin-top:18px;">
+            <button onClick="{{ irFunil }}" style="flex:1; border:0; background:{{ avancarBg }}; color:#fff; font-family:'Source Serif 4', Georgia, serif; font-size:13.5px; padding:10px; border-radius:3px; cursor:pointer;">{{ avancarTxt }}</button>
+            <button style="border:1px solid #4A463A; background:transparent; color:#D7D3C8; font-family:'Source Serif 4', Georgia, serif; font-size:13.5px; padding:10px 14px; border-radius:3px; cursor:pointer;" style-hover="background:#332F27;">Descartar</button>
+          </div>
+          <div style="font-size:12px; color:#9C978A; margin-top:9px; text-wrap:pretty;">{{ avancarNota }}</div>
+        </div>
+
+        <div style="background:#FCFBF8; border:1px solid #DDD9CF; border-radius:4px; padding:18px 20px;">
+          <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:12px;">
+            <span style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:0.16em; text-transform:uppercase; color:#7C7768;">Checklist de campo</span>
+            <span style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:#5C584C;">{{ checklistProgresso }}</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:2px;">
+            <sc-for list="{{ checklist }}" as="c" hint-placeholder-count="6">
+              <button onClick="{{ c.toggle }}" style="display:flex; align-items:flex-start; gap:10px; width:100%; text-align:left; border:0; background:transparent; padding:7px 6px; border-radius:3px; cursor:pointer; font-family:'Source Serif 4', Georgia, serif;" style-hover="background:#F2F0EB;">
+                <span style="width:15px; height:15px; border-radius:3px; border:1.5px solid {{ c.bd }}; background:{{ c.bg }}; color:#fff; font-size:10px; display:grid; place-items:center; flex:none; margin-top:2px; font-family:'IBM Plex Mono', monospace;">{{ c.mark }}</span>
+                <span style="font-size:13px; color:{{ c.fg }}; text-decoration:{{ c.deco }}; text-wrap:pretty;">{{ c.label }}</span>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="background:#FCFBF8; border:1px solid #DDD9CF; border-radius:4px; padding:18px 20px;">
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:0.16em; text-transform:uppercase; color:#7C7768; margin-bottom:12px;">Histórico do registro</div>
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            <sc-for list="{{ log }}" as="g" hint-placeholder-count="4">
+              <div style="display:flex; gap:10px;">
+                <div style="width:24px; height:24px; border-radius:50%; background:{{ g.bg }}; color:{{ g.fg }}; display:grid; place-items:center; font-size:9.5px; font-weight:600; flex:none; font-family:'IBM Plex Mono', monospace;">{{ g.iniciais }}</div>
+                <div>
+                  <div style="font-size:12.5px; text-wrap:pretty;">{{ g.texto }}</div>
+                  <div style="font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:#8A8577; margin-top:2px;">{{ g.quando }}</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ══════════ FUNIL ══════════ -->
+  <sc-if value="{{ isFunil }}" hint-placeholder-val="{{ false }}">
+  <div style="padding:24px 28px 60px;">
+    <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:24px; margin-bottom:20px;">
+      <div>
+        <div style="font-family:'IBM Plex Mono', monospace; font-size:10.5px; letter-spacing:0.18em; text-transform:uppercase; color:#7C7768; margin-bottom:6px;">Funil de aprovação · setembro</div>
+        <h1 style="margin:0; font-size:30px; font-weight:600; letter-spacing:-0.015em;">Do arquivo da Caixa até o lance</h1>
+      </div>
+      <div style="display:flex; align-items:center; gap:24px;">
+        <div style="text-align:right;">
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:9.5px; letter-spacing:0.13em; text-transform:uppercase; color:#7C7768;">Importados → aprovados</div>
+          <div style="font-size:22px; font-weight:600;">1,4%</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:9.5px; letter-spacing:0.13em; text-transform:uppercase; color:#7C7768;">Tempo médio de pesquisa</div>
+          <div style="font-size:22px; font-weight:600;">9 dias</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(5, minmax(0,1fr)); gap:14px; align-items:start;">
+      <sc-for list="{{ colunas }}" as="col" hint-placeholder-count="5">
+        <div style="background:#E7E4DB; border:1px solid #DDD9CF; border-radius:4px; padding:12px; min-height:430px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+            <span style="font-size:14px; font-weight:600; letter-spacing:-0.01em;">{{ col.nome }}</span>
+            <span style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:#7C7768;">{{ col.qtd }}</span>
+          </div>
+          <div style="font-size:11.5px; color:#7C7768; margin:4px 0 9px; text-wrap:pretty;">{{ col.nota }}</div>
+          <div style="height:3px; background:#D4CFC3; border-radius:2px; overflow:hidden; margin-bottom:12px;">
+            <div style="height:100%; width:{{ col.pct }}; background:{{ col.cor }};"></div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <sc-for list="{{ col.cards }}" as="c" hint-placeholder-count="3">
+              <div onClick="{{ c.abrir }}" style="background:#FCFBF8; border:1px solid #DDD9CF; border-left:3px solid {{ c.borda }}; border-radius:3px; padding:11px 12px; cursor:pointer;" style-hover="background:#fff; border-color:#B8B2A3;">
+                <div style="font-size:13px; line-height:1.35; text-wrap:pretty;">{{ c.endereco }}</div>
+                <div style="font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:#7C7768; margin-top:5px;">{{ c.cidade }}</div>
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; margin-top:10px;">
+                  <span style="font-family:'IBM Plex Mono', monospace; font-size:12px; font-weight:600; white-space:nowrap;">{{ c.valor }}</span>
+                  <span style="font-family:'IBM Plex Mono', monospace; font-size:11px; font-weight:600; white-space:nowrap; color:{{ c.descCor }};">{{ c.desconto }}</span>
+                </div>
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; margin-top:9px; padding-top:9px; border-top:1px solid #EAE7DE;">
+                  <span style="display:inline-flex; align-items:center; gap:4px;">
+                    <sc-for list="{{ c.campos }}" as="q" hint-placeholder-count="5">
+                      <span style="width:9px; height:9px; border-radius:2px; background:{{ q.cor }}; border:1px {{ q.borda }} {{ q.bordaCor }};"></span>
+                    </sc-for>
+                  </span>
+                  <span style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:0.06em; padding:3px 7px; border-radius:99px; background:{{ c.tagBg }}; color:{{ c.tagFg }}; white-space:nowrap;">{{ c.tag }}</span>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:22px;">
+      <sc-for list="{{ notas }}" as="g" hint-placeholder-count="3">
+        <div style="background:#FCFBF8; border:1px solid #DDD9CF; border-radius:4px; padding:16px 18px;">
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:{{ g.cor }};">{{ g.tag }}</div>
+          <div style="font-size:14.5px; margin-top:7px; text-wrap:pretty;">{{ g.titulo }}</div>
+          <div style="font-size:12.5px; color:#6E6A5E; margin-top:5px; text-wrap:pretty;">{{ g.nota }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:980},&quot;dense&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Triagem&quot;}}">
+const OK='#1F6F4A', RED='#8C2F2F', AMBER='#8A6B14', INK='#1B1A16', MUT='#7C7768';
+
+// procedência do dado
+const ORIG = {
+  caixa:  { cor:'#C9C4B6', borda:'solid',  bordaCor:'#B8B2A3', chip:'Caixa',  chipBg:'#E4E0D6', chipFg:'#5C584C' },
+  manual: { cor:OK,        borda:'solid',  bordaCor:OK,        chip:'Manual', chipBg:'#E6EEE9', chipFg:OK },
+  auto:   { cor:'#D9B84F', borda:'solid',  bordaCor:'#B79A2F', chip:'Automático', chipBg:'#F7EFDC', chipFg:AMBER },
+  vazio:  { cor:'transparent', borda:'dashed', bordaCor:'#B8B2A3', chip:'A preencher', chipBg:'#F2F0EB', chipFg:'#8A8577' }
+};
+const brl = (n) => 'R$ ' + n.toLocaleString('pt-BR', { maximumFractionDigits: 0 });
+const num = (s) => { const v = parseInt(String(s).replace(/\D/g,''), 10); return isNaN(v) ? 0 : v; };
+
+class Component extends DCLogic {
+  state = {
+    tela: 'triagem',
+    busca: { uf:'MG', cidade:'Todas as cidades', bairro:'', precoMin:0, precoMax:1600000,
+             tipos:[], financiamento:'Indiferente', fgts:'Indiferente', descontoMin:35, semDados:false },
+    // dados de campo — tudo digitado à mão
+    campos: {
+      fgts:      { v:'Aceita FGTS', origem:'manual' },
+      mercado:   { v:'190.000', origem:'manual', sugestao:'168.000' },
+      iptu:      { v:'3.400',   origem:'manual' },
+      condominio:{ v:'',        origem:'vazio'  },
+      ocupacao:  { v:'Ocupado — antigo mutuário', origem:'manual' },
+      reforma:   { v:'22.000',  origem:'manual' },
+      desocupar: { v:'15.000',  origem:'manual' }
+    },
+    nota: 'Vizinha confirmou que a família ainda mora no imóvel. Telhado aparentemente novo. Falta confirmar débito de água.',
+    check: { matricula:true, visita:true, iptu:true, condominio:false, edital:false, comparaveis:true }
+  };
+
+  go(t) { return () => this.setState({ tela: t }); }
+
+  setCampo(k) {
+    return (e) => {
+      const v = e.target.value;
+      this.setState(s => ({ campos: Object.assign({}, s.campos, {
+        [k]: Object.assign({}, s.campos[k], { v, origem: v ? 'manual' : 'vazio' })
+      })}));
+    };
+  }
+
+  aplicarSugestao(k) {
+    return () => this.setState(s => ({ campos: Object.assign({}, s.campos, {
+      [k]: Object.assign({}, s.campos[k], { v: s.campos[k].sugestao, origem:'auto' })
+    })}));
+  }
+
+  setB(k, ehNumero) {
+    return (e) => {
+      const v = ehNumero ? Number(e.target.value) : e.target.value;
+      this.setState(s => ({ busca: Object.assign({}, s.busca, { [k]: v }) }));
+    };
+  }
+
+  pick(k, v) { return () => this.setState(s => ({ busca: Object.assign({}, s.busca, { [k]: v }) })); }
+
+  toggleTipo(t) {
+    return () => this.setState(s => ({ busca: Object.assign({}, s.busca, {
+      tipos: s.busca.tipos.includes(t) ? s.busca.tipos.filter(x => x !== t) : s.busca.tipos.concat(t)
+    })}));
+  }
+
+  limparBusca() {
+    return () => this.setState({ busca: { uf:'MG', cidade:'Todas as cidades', bairro:'', precoMin:0,
+      precoMax:1600000, tipos:[], financiamento:'Indiferente', fgts:'Indiferente', descontoMin:0, semDados:false } });
+  }
+
+  renderVals() {
+    const dense = this.props.dense ?? false;
+    const c = this.state.campos;
+
+    const b = this.state.busca;
+    const segm = (chave, opcoes) => opcoes.map(o => {
+      const on = b[chave] === o;
+      return { label:o, go:this.pick(chave, o), bg:on?INK:'transparent', fg:on?'#F2F0EB':'#3D3A31', bd:on?INK:'#C9C4B6' };
+    });
+
+    const marcador = (o) => ({ nome:o, cor:ORIG[o].cor, borda:ORIG[o].borda, bordaCor:ORIG[o].bordaCor });
+    const campoSet = (n) => ['mercado','iptu','condomínio','ocupação','reforma'].map((nome,i) =>
+      Object.assign(marcador(i < n ? 'manual' : 'vazio'), { nome }));
+
+    // linhas reais da planilha da Caixa (MG, 28/08/2026); FGTS é dado manual
+    const raw = [
+      { end:'RUA CANAA, N. 189, LT 53 QD L', id:'8444403570957', cidade:'Aimorés', bairro:'Betel', extra:'63,96 m² · 2 qto', tipo:'Casa', preco:49647, aval:176000, desc:71.8, mod:'Venda Direta Online', fin:false, fgts:'Aceita FGTS', n:5, nota:'completo' },
+      { end:'R BAHIA, N. 691', id:'8444414147570', cidade:'Areado', bairro:'Rosário', extra:'48,45 m² · 2 qto', tipo:'Casa', preco:51334, aval:100000, desc:48.67, mod:'Venda Direta Online', fin:false, fgts:'Aceita FGTS', n:3, nota:'falta condomínio e reforma' },
+      { end:'RUA TRES, N. 99, LT 13 QD D', id:'8444425807720', cidade:'Areado', bairro:'Lot. Recanto Verde', extra:'66,08 m²', tipo:'Casa', preco:103355, aval:190000, desc:45.61, mod:'Venda Direta Online', fin:false, fgts:'Não verificado', n:2, nota:'só endereço conferido' },
+      { end:'RUA DO CORREDOR, LT 325 QD 062', id:'8555507642727', cidade:'Águas Formosas', bairro:'Gameleira', extra:'37,21 m²', tipo:'Casa', preco:25560, aval:44000, desc:41.91, mod:'Licitação Aberta', fin:false, fgts:'Não verificado', n:1, nota:'nenhuma visita ainda' },
+      { end:'RUA ELVIRA CASCÃO, QD 19 LT 05', id:'8444424796253', cidade:'Araguari', bairro:'Novo Horizonte', extra:'52,07 m²', tipo:'Casa', preco:89576, aval:153000, desc:41.46, mod:'Venda Direta Online', fin:false, fgts:'Não verificado', n:0, nota:'importado hoje' },
+      { end:'RUA NOVE, QD 15, LT 05', id:'10224694', cidade:'Araguari', bairro:'Jardim Panorama', extra:'2.275 m² de terreno', tipo:'Terreno', preco:289659, aval:505000, desc:42.65, mod:'Venda Direta Online', fin:true, fgts:'Não aceita', n:0, nota:'importado hoje' },
+      { end:'RUA JOÃO BATISTA PIERMATEI, N. 26, ap 101', id:'1444422178414', cidade:'Antônio Prado de Minas', bairro:'Centro', extra:'166,75 m² · 3 qto', tipo:'Apartamento', preco:300812, aval:472000, desc:36.27, mod:'Venda Direta Online', fin:true, fgts:'Aceita FGTS', n:2, nota:'aguarda taxa de condomínio' },
+      { end:'AVENIDA OESTE DE MINAS, LT 05, QD 09', id:'1444422148663', cidade:'Antônio Carlos', bairro:'Vale do Ipê', extra:'5.250 m² de terreno', tipo:'Terreno', preco:117073, aval:186000, desc:37.06, mod:'Venda Direta Online', fin:false, fgts:'Não aceita', n:0, nota:'importado hoje' },
+      { end:'RUA JOAQUIM BORGES, N. 308, QD V', id:'10290991', cidade:'Alfenas', bairro:'Jardim Aeroporto', extra:'490,31 m²', tipo:'Casa', preco:1274629, aval:2000000, desc:36.27, mod:'Licitação Aberta', fin:true, fgts:'Não verificado', n:0, nota:'nenhuma visita ainda' },
+      { end:'P SAO VICENTE, N. 04/10, PREDIO 04 E AP 201', id:'10305201', cidade:'Araguari', bairro:'Idelmino', extra:'446,53 m²', tipo:'Loja', preco:1530000, aval:1530000, desc:0, mod:'Leilão SFI · edital único', fin:false, fgts:'Não aceita', n:0, nota:'sem desconto na planilha' }
+    ];
+
+    const cidades = ['Todas as cidades'].concat(raw.map(r => r.cidade).filter((v,i,a) => a.indexOf(v) === i).sort());
+    const tiposDisp = ['Casa','Apartamento','Terreno','Loja'];
+
+    const passa = (r) =>
+      (b.uf === 'Todos os estados' || (r.uf || 'MG') === b.uf) &&
+      (b.cidade === 'Todas as cidades' || r.cidade === b.cidade) &&
+      (!b.bairro || r.bairro.toLowerCase().indexOf(b.bairro.toLowerCase()) >= 0) &&
+      r.preco >= b.precoMin && r.preco <= b.precoMax &&
+      (b.tipos.length === 0 || b.tipos.indexOf(r.tipo) >= 0) &&
+      (b.financiamento === 'Indiferente' || (b.financiamento === 'Aceita') === r.fin) &&
+      (b.fgts === 'Indiferente' || r.fgts === b.fgts) &&
+      r.desc >= b.descontoMin &&
+      (!b.semDados || r.n === 0);
+
+    const lotes = raw.filter(passa).map(r => ({
+      endereco:r.end,
+      meta:r.id + ' · ' + r.cidade.toUpperCase() + ' · ' + r.bairro.toUpperCase() + ' · ' + r.extra,
+      tipo:r.tipo, preco:brl(r.preco), avaliacao:brl(r.aval),
+      desconto: r.desc ? r.desc.toFixed(1).replace('.',',') + '%' : '—',
+      descColor: !r.desc ? MUT : r.desc >= 45 ? OK : r.desc >= 35 ? INK : MUT,
+      modalidade:r.mod,
+      financiamento: (r.fin ? 'aceita financiamento' : 'sem financiamento') + ' · ' + r.fgts.toLowerCase(),
+      campos: campoSet(r.n),
+      camposTxt: r.n + '/5',
+      camposCor: r.n === 5 ? OK : r.n === 0 ? '#8A8577' : AMBER,
+      camposNota: r.nota,
+      abrir: () => this.setState({ tela:'ficha' }),
+      descartar: (e) => { e.stopPropagation(); }
+    }));
+
+    const ativos = [
+      b.cidade !== 'Todas as cidades' ? b.cidade : null,
+      b.bairro ? 'bairro "' + b.bairro + '"' : null,
+      (b.precoMin > 0 || b.precoMax < 1600000) ? brl(b.precoMin) + ' a ' + brl(b.precoMax) : null,
+      b.tipos.length ? b.tipos.join(', ') : null,
+      b.financiamento !== 'Indiferente' ? 'financiamento: ' + b.financiamento.toLowerCase() : null,
+      b.fgts !== 'Indiferente' ? b.fgts : null,
+      b.descontoMin > 0 ? 'desconto ≥ ' + b.descontoMin + '%' : null,
+      b.semDados ? 'sem dados de campo' : null
+    ].filter(Boolean);
+
+    // ── ficha: conta do negócio a partir dos campos manuais
+    const preco = 49647, comissao = Math.round(preco*0.05), itbi = Math.round(preco*0.045);
+    const mercado = num(c.mercado.v), iptu = num(c.iptu.v), cond = num(c.condominio.v);
+    const reforma = num(c.reforma.v), desoc = num(c.desocupar.v);
+    const total = preco + comissao + itbi + iptu + cond + reforma + desoc;
+    const margem = mercado ? ((mercado - total) / mercado) * 100 : null;
+    const ok = margem !== null && margem >= 25;
+
+    const defs = [
+      ['fgts','Aceita FGTS?','Confirmado na página do imóvel ou no edital',null,null,null,null],
+      ['mercado','Valor real de mercado','Sua estimativa a partir de anúncios da região','R$','170.000','130px','right'],
+      ['iptu','IPTU em atraso','Consulta na prefeitura ou no edital','R$','0','110px','right'],
+      ['condominio','Débito de condomínio','Casa isolada normalmente não tem','R$','0','110px','right'],
+      ['ocupacao','Ocupação','Confirmada em visita ou com vizinhos',null,null,null,null],
+      ['reforma','Reforma estimada','Orçamento aproximado após a visita','R$','0','110px','right'],
+      ['desocupar','Custo de desocupação','Acordo amigável ou ação judicial','R$','0','110px','right']
+    ];
+    const campos = defs.map(([k,label,hint,pref,ph,w,align]) => {
+      const f = c[k];
+      const o = ORIG[f.origem] || ORIG.vazio;
+      const isSel = k === 'ocupacao' || k === 'fgts';
+      const opcoesSel = k === 'fgts'
+        ? ['Não verificado','Aceita FGTS','Não aceita']
+        : ['Não verificado','Desocupado','Ocupado — antigo mutuário','Ocupado — terceiros','Locado com contrato'];
+      const vazio = !f.v;
+      return {
+        label, hint, value:f.v, onChange:this.setCampo(k),
+        isSelect:isSel, isText:!isSel,
+        opcoes: isSel ? opcoesSel : [],
+        placeholder: ph || '', largura: w || '220px', align: align || 'left',
+        inputBorda: vazio ? '#B8B2A3' : '#C9C4B6', inputBg: vazio ? '#F7F5F0' : '#fff',
+        origemCor:o.cor, origemBorda:o.borda, origemBordaCor:o.bordaCor,
+        chip:o.chip, chipBg:o.chipBg, chipFg:o.chipFg,
+        temSugestao: k === 'mercado' && f.origem === 'manual' && !!f.sugestao,
+        sugestaoTxt: 'Automação futura sugeriria R$ ' + (f.sugestao || ''),
+        aplicar:this.aplicarSugestao(k),
+        temAviso: k === 'condominio' && vazio,
+        aviso: 'Sem esse valor a conta abaixo assume zero.'
+      };
+    });
+
+    const totalCampos = Object.keys(c).length;
+    const preenchidos = Object.keys(c).filter(k => !!c[k].v).length;
+
+    const itens = [
+      ['matricula','Matrícula do imóvel obtida no CRI'],['visita','Visita ou foto recente do imóvel'],
+      ['iptu','IPTU consultado na prefeitura'],['condominio','Taxa de condomínio confirmada'],
+      ['edital','Edital lido por inteiro'],['comparaveis','3 anúncios comparáveis salvos']
+    ];
+    const checklist = itens.map(([k,label]) => {
+      const on = this.state.check[k];
+      return { label, mark:on?'✓':'', bd:on?OK:'#C9C4B6', bg:on?OK:'transparent',
+        fg:on?'#6E6A5E':INK, deco:on?'line-through':'none',
+        toggle: () => this.setState(s => ({ check: Object.assign({}, s.check, { [k]: !s.check[k] }) })) };
+    });
+    const feitos = itens.filter(([k]) => this.state.check[k]).length;
+
+    const cardsFunil = (arr) => arr.map(x => ({
+      endereco:x[0], cidade:x[1], valor:x[2], desconto:x[3],
+      descCor: parseFloat(String(x[3]).replace(/[^\d,]/g,'').replace(',','.')) >= 45 ? OK : INK,
+      campos: campoSet(x[4]), tag:x[5], borda:x[6], tagBg:x[7], tagFg:x[8],
+      abrir: () => this.setState({ tela:'ficha' })
+    }));
+
+    return {
+      nav: [['triagem','Triagem'],['funil','Funil de aprovação']].map(([k,label]) => ({
+        label, go:this.go(k),
+        bg: this.state.tela===k ? '#332F27' : 'transparent',
+        fg: this.state.tela===k ? '#F2F0EB' : '#9C978A'
+      })),
+      isTriagem: this.state.tela==='triagem',
+      isFicha: this.state.tela==='ficha',
+      isFunil: this.state.tela==='funil',
+      voltar: this.go('triagem'),
+      irFunil: this.go('funil'),
+      noop: (e) => e.preventDefault(),
+      rowPad: dense ? '8px' : '13px',
+
+      kpis: [
+        { label:'Importados da Caixa', value:'981', color:INK },
+        { label:'Com dados de campo', value:'46', color:INK },
+        { label:'Prontos p/ decisão', value:'11', color:OK },
+        { label:'Desconto ≥ 40%', value:'207', color:INK }
+      ],
+      ufs: ['Todos os estados','MG'],
+      uf: b.uf, setUf: this.setB('uf'),
+      cidades, cidade: b.cidade, setCidade: this.setB('cidade'),
+      bairro: b.bairro, setBairro: this.setB('bairro'),
+      precoMin: b.precoMin, precoMax: b.precoMax,
+      setPrecoMin: this.setB('precoMin', true), setPrecoMax: this.setB('precoMax', true),
+      precoMinTxt: brl(b.precoMin), precoMaxTxt: b.precoMax >= 1600000 ? brl(1600000) + '+' : brl(b.precoMax),
+      bandaLeft: (b.precoMin / 1600000 * 100) + '%',
+      bandaRight: (100 - b.precoMax / 1600000 * 100) + '%',
+      descontoMin: b.descontoMin, setDesconto: this.setB('descontoMin', true),
+      descontoMinTxt: b.descontoMin > 0 ? '≥ ' + b.descontoMin + '%' : 'qualquer',
+      optTipos: tiposDisp.map(t => {
+        const on = b.tipos.indexOf(t) >= 0;
+        return { label:t, go:this.toggleTipo(t), bg:on?INK:'transparent', fg:on?'#F2F0EB':'#3D3A31', bd:on?INK:'#C9C4B6' };
+      }),
+      optFin: segm('financiamento', ['Indiferente','Aceita','Não aceita']),
+      optFgts: segm('fgts', ['Indiferente','Aceita FGTS','Não aceita']),
+      semDados: b.semDados,
+      toggleSemDados: this.pick('semDados', !b.semDados),
+      semDadosBg: b.semDados ? INK : 'transparent',
+      semDadosFg: b.semDados ? '#F2F0EB' : '#3D3A31',
+      semDadosBd: b.semDados ? INK : '#C9C4B6',
+      limpar: this.limparBusca(),
+      semResultados: lotes.length === 0,
+      resumoBusca: ativos.length ? 'Filtrando por ' + ativos.join(' · ') : 'Sem filtros: mostrando tudo que foi importado',
+      contagem: lotes.length + ' de 981 imóveis',
+      legenda: [
+        Object.assign(marcador('caixa'),  { label:'Planilha da Caixa' }),
+        Object.assign(marcador('manual'), { label:'Digitado por você' }),
+        Object.assign(marcador('auto'),   { label:'Automação (futuro)' }),
+        Object.assign(marcador('vazio'),  { label:'Em branco' })
+      ],
+      lotes,
+
+      ficha: {
+        codigo:'8444403570957',
+        endereco:'Rua Canaã, 189 — Lote 53, Quadra L',
+        local:'Betel · Aimorés, MG',
+        descricao:'Casa, 63.96 de área total, 63.96 de área privativa, 150.00 de área do terreno, 2 qto(s), WC, 1 sala(s), cozinha.',
+        modalidade:'Venda Direta Online',
+        financiamento:'Não aceita financiamento',
+        metricas: [
+          { label:'Preço de venda', value:'R$ 49.647', hint:'campo Preço', color:INK },
+          { label:'Valor de avaliação', value:'R$ 176.000', hint:'campo Valor de avaliação', color:INK },
+          { label:'Desconto', value:'71,8%', hint:'calculado pela Caixa', color:OK },
+          { label:'Área privativa', value:'63,96 m²', hint:'extraído da descrição', color:INK }
+        ]
+      },
+      campos,
+      nota: this.state.nota,
+      setNota: (e) => this.setState({ nota: e.target.value }),
+      preenchidoTxt: preenchidos + '/' + totalCampos + ' campos preenchidos',
+      preenchidoCor: preenchidos === totalCampos ? OK : AMBER,
+
+      conta: [
+        { label:'Preço de venda (Caixa)', value:brl(preco), color:INK, weight:'500' },
+        { label:'Comissão do leiloeiro (5%)', value:brl(comissao), color:'#5C584C', weight:'400' },
+        { label:'ITBI + registro (estimado)', value:brl(itbi), color:'#5C584C', weight:'400' },
+        { label:'IPTU em atraso (manual)', value: c.iptu.v ? brl(iptu) : 'em branco', color: c.iptu.v ? RED : '#8A8577', weight:'500' },
+        { label:'Condomínio (manual)', value: c.condominio.v ? brl(cond) : 'em branco', color: c.condominio.v ? RED : '#8A8577', weight:'500' },
+        { label:'Reforma (manual)', value: c.reforma.v ? brl(reforma) : 'em branco', color:'#5C584C', weight:'400' },
+        { label:'Desocupação (manual)', value: c.desocupar.v ? brl(desoc) : 'em branco', color: c.desocupar.v ? RED : '#8A8577', weight:'500' }
+      ],
+      custoTotal: brl(total),
+      margem: margem === null ? '—' : (margem > 0 ? '+' : '') + margem.toFixed(1) + '%',
+      resultadoBg: margem === null ? '#F2F0EB' : ok ? '#E6EEE9' : '#F6EFEC',
+      resultadoFg: margem === null ? '#8A8577' : ok ? OK : RED,
+      resultadoNota: margem === null
+        ? 'Preencha o valor de mercado para ver a margem.'
+        : ok ? 'Acima do piso de 25% definido pelo comitê.' : 'Abaixo do piso de 25% definido pelo comitê.',
+
+      etapasBarra: [
+        { nome:'Importado', cor:'#F2F0EB' }, { nome:'Pesquisa de campo', cor:'#F2F0EB' },
+        { nome:'Análise financeira', cor:'#4A463A' }, { nome:'Decisão', cor:'#4A463A' }, { nome:'Aprovado p/ lance', cor:'#4A463A' }
+      ],
+      avancarTxt: preenchidos === totalCampos ? 'Enviar para decisão' : 'Enviar mesmo com lacunas',
+      avancarBg: preenchidos === totalCampos ? OK : '#6E6A5E',
+      avancarNota: preenchidos === totalCampos
+        ? 'Todos os dados de campo estão preenchidos.'
+        : (totalCampos - preenchidos) + ' campo(s) em branco. Dá para avançar, mas fica registrado quem decidiu sem o dado.',
+      checklist,
+      checklistProgresso: feitos + '/6',
+
+      log: [
+        { iniciais:'RS', bg:'#E6EEE9', fg:OK, texto:'Ocupação alterada de "Não verificado" para "Ocupado — antigo mutuário".', quando:'Hoje, 11:20' },
+        { iniciais:'RS', bg:'#E6EEE9', fg:OK, texto:'Valor de mercado definido em R$ 190.000 com base em 3 anúncios na mesma rua.', quando:'Hoje, 11:02' },
+        { iniciais:'RS', bg:'#E6EEE9', fg:OK, texto:'IPTU em atraso lançado: R$ 3.400 (protocolo da prefeitura anexado).', quando:'Ontem, 16:40' },
+        { iniciais:'CX', bg:'#E4E0D6', fg:'#5C584C', texto:'Registro importado da planilha da Caixa de 28/08/2026.', quando:'28/08, 07:15' }
+      ],
+
+      colunas: [
+        { nome:'Importado', qtd:'981', nota:'Só o que veio da planilha', pct:'100%', cor:'#9C978A', cards: cardsFunil([
+          ['RUA ELVIRA CASCÃO, QD 19 LT 05','Araguari MG','R$ 89.576','41,5%',0,'Sem pesquisa','#9C978A','#F2F0EB','#8A8577'],
+          ['RUA JOAQUIM BORGES, N. 308','Alfenas MG','R$ 1.274.629','36,3%',0,'Sem pesquisa','#9C978A','#F2F0EB','#8A8577'],
+          ['P SAO VICENTE, PREDIO 04','Araguari MG','R$ 1.530.000','—',0,'Sem desconto','#9C978A','#F2F0EB','#8A8577']
+        ])},
+        { nome:'Pesquisa de campo', qtd:'46', nota:'Alguém está preenchendo à mão', pct:'58%', cor:'#7C7768', cards: cardsFunil([
+          ['RUA CANAA, N. 189','Aimorés MG','R$ 49.647','71,8%',5,'Visitado','#8A6B14','#F7EFDC','#8A6B14'],
+          ['RUA TRES, N. 99','Areado MG','R$ 103.355','45,6%',2,'Falta IPTU','#8A6B14','#F7EFDC','#8A6B14']
+        ])},
+        { nome:'Análise financeira', qtd:'19', nota:'Conta fechada com os dados manuais', pct:'40%', cor:AMBER, cards: cardsFunil([
+          ['R BAHIA, N. 691','Areado MG','R$ 51.334','48,7%',4,'Margem 34%','#8A6B14','#F7EFDC','#8A6B14'],
+          ['RUA DO CORREDOR, LT 325','Aguas Formosas MG','R$ 25.560','41,9%',3,'Margem 21%','#8C2F2F','#F6EFEC','#8C2F2F']
+        ])},
+        { nome:'Decisão', qtd:'7', nota:'Aguardando aval de investimento', pct:'26%', cor:RED, cards: cardsFunil([
+          ['RUA JOÃO BATISTA PIERMATEI, ap 101','Antonio Prado de Minas MG','R$ 300.812','36,3%',5,'Pauta 03/09','#8C2F2F','#F6EFEC','#8C2F2F']
+        ])},
+        { nome:'Aprovado p/ lance', qtd:'11', nota:'Teto de lance definido', pct:'16%', cor:OK, cards: cardsFunil([
+          ['RUA ANESIA VIEIRA DE OLIVEIRA, N. 274','Alfenas MG','R$ 200.000','—',5,'Teto R$ 214 mil','#1F6F4A','#E6EEE9','#1F6F4A'],
+          ['RUA HONORIO DE PAIVA ABREU, 1070F','Araxá MG','R$ 320.000','—',5,'Lance 05/09','#1F6F4A','#E6EEE9','#1F6F4A']
+        ])}
+      ],
+
+      notas: [
+        { tag:'Trabalho manual', cor:AMBER, titulo:'935 imóveis importados nunca receberam um dado de campo', nota:'A fila só é útil se a triagem cortar cedo. Filtre por desconto e cidade antes de sair pesquisando.' },
+        { tag:'Ponto cego', cor:RED, titulo:'IPTU e condomínio em branco viram zero na conta', nota:'A ficha marca esses campos com contorno pontilhado e registra quem avançou sem preencher.' },
+        { tag:'Próxima automação', cor:OK, titulo:'Quando ligarmos a busca de comparáveis, ela entra como sugestão', nota:'O valor sugerido aparece ao lado do campo com o rótulo Automático. Seu número continua valendo até você aceitar.' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

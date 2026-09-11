@@ -1,0 +1,31 @@
+{
+  "tabela": "tjmg_4_2026",
+  "item": "5e",
+  "vigencia_inicio": "2026-01-01",
+  "faixas": [
+    { "limite_superior": 1400.00, "valor": 227.95 },
+    { "limite_superior": 2720.00, "valor": 371.84 },
+    { "limite_superior": 5440.00, "valor": 538.85 },
+    { "limite_superior": 7000.00, "valor": 745.98 },
+    { "limite_superior": 14000.00, "valor": 994.78 },
+    { "limite_superior": 28000.00, "valor": 1285.21 },
+    { "limite_superior": 42000.00, "valor": 1597.11 },
+    { "limite_superior": 56000.00, "valor": 1989.94 },
+    { "limite_superior": 70000.00, "valor": 2404.60 },
+    { "limite_superior": 105000.00, "valor": 3026.34 },
+    { "limite_superior": 140000.00, "valor": 3839.67 },
+    { "limite_superior": 175000.00, "valor": 4106.03 },
+    { "limite_superior": 210000.00, "valor": 4372.88 },
+    { "limite_superior": 280000.00, "valor": 4914.86 },
+    { "limite_superior": 350000.00, "valor": 5050.25 },
+    { "limite_superior": 420000.00, "valor": 5186.26 },
+    { "limite_superior": 560000.00, "valor": 5677.78 },
+    { "limite_superior": 700000.00, "valor": 5989.84 },
+    { "limite_superior": 840000.00, "valor": 6302.53 },
+    { "limite_superior": 1120000.00, "valor": 7046.73 },
+    { "limite_superior": 1400000.00, "valor": 7632.83 },
+    { "limite_superior": 1680000.00, "valor": 8219.92 },
+    { "limite_superior": 3200000.00, "valor": 8808.22 },
+    { "limite_superior": 3700000.00, "valor": 13034.69 }
+  ]
+}
