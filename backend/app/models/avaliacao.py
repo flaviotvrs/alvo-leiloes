@@ -30,7 +30,7 @@ class Avaliacao(UUIDPk, Base):
 
     lote_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("lote_leilao.id"))
     usuario_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("usuario.id"), index=True)
-    etapa: Mapped[Etapa] = mapped_column(str_enum(Etapa, "etapa"), default=Etapa.NAO_AVALIADO, index=True)
+    etapa: Mapped[Etapa] = mapped_column(str_enum(Etapa, "etapa"), default=Etapa.TRIAGEM, index=True)
     etapa_desde: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     motivo_descarte: Mapped[str | None]
     teto_lance: Mapped[float | None] = mapped_column(Numeric(14, 2))

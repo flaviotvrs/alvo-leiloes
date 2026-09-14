@@ -15,6 +15,9 @@ export interface ImoveisFiltros {
   fgts?: "indiferente" | "aceita" | "nao_aceita";
   desconto_min?: number;
   sem_dados_campo?: boolean;
+  /** Filtro só de tela da Triagem, não é enviado ao backend — controla se etapa=descartado
+   * entra na lista de etapas buscadas (ver Triagem.tsx). */
+  ocultar_descartados?: boolean;
   etapa?: string[];
   cursor?: string;
   limit?: number;

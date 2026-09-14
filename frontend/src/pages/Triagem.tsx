@@ -33,6 +33,7 @@ function filtrosDeParams(params: URLSearchParams): ImoveisFiltros {
     fgts: (params.get("fgts") as ImoveisFiltros["fgts"]) ?? undefined,
     desconto_min: params.get("desconto_min") ? Number(params.get("desconto_min")) : undefined,
     sem_dados_campo: params.get("sem_dados_campo") === "true" ? true : undefined,
+    ocultar_descartados: params.get("ocultar_descartados") === "true" ? true : undefined,
   };
 }
 
@@ -48,6 +49,7 @@ function paramsDeFiltros(filtros: ImoveisFiltros): URLSearchParams {
   if (filtros.fgts && filtros.fgts !== "indiferente") params.set("fgts", filtros.fgts);
   if (filtros.desconto_min) params.set("desconto_min", String(filtros.desconto_min));
   if (filtros.sem_dados_campo) params.set("sem_dados_campo", "true");
+  if (filtros.ocultar_descartados) params.set("ocultar_descartados", "true");
   return params;
 }
 
@@ -63,6 +65,7 @@ function descricaoFiltros(filtros: ImoveisFiltros): string {
   if (filtros.fgts && filtros.fgts !== "indiferente")
     partes.push(filtros.fgts === "aceita" ? "aceita FGTS" : "não aceita FGTS");
   if (filtros.sem_dados_campo) partes.push("sem dados de campo");
+  if (filtros.ocultar_descartados) partes.push("ocultando descartados");
   return partes.length ? `Filtrando por ${partes.join(" · ")}` : "Sem filtros: mostrando toda a base";
 }
 
@@ -94,7 +97,11 @@ export function Triagem() {
   const filtros = filtrosDeParams(searchParams);
   const kpis = useTriagemKpis();
   const { data: facetas } = useFacetas();
-  const { data, isLoading } = useImoveis(filtros);
+  const { ocultar_descartados, ...filtrosApi } = filtros;
+  const { data, isLoading } = useImoveis({
+    ...filtrosApi,
+    etapa: ocultar_descartados ? ["triagem"] : ["triagem", "descartado"],
+  });
 
   function atualizarFiltros(patch: Partial<ImoveisFiltros>) {
     setSearchParams(paramsDeFiltros({ ...filtros, ...patch }));
@@ -106,10 +113,18 @@ export function Triagem() {
     if (!motivo) return;
     await apiPost(`/avaliacoes/${item.avaliacao_id}/descartar`, { motivo });
     queryClient.invalidateQueries({ queryKey: ["imoveis"] });
+    queryClient.invalidateQueries({ queryKey: ["funil"] });
+  }
+
+  async function selecionarEAbrir(item: ImovelListItem) {
+    await apiPost(`/avaliacoes/${item.avaliacao_id}/etapa`, { etapa: "nao_avaliado" });
+    queryClient.invalidateQueries({ queryKey: ["imoveis"] });
+    queryClient.invalidateQueries({ queryKey: ["funil"] });
+    navigate(`/imoveis/${item.lote_id}`);
   }
 
   const kpiItens = [
-    { label: "Não avaliados", valor: kpis.naoAvaliados, cor: "" },
+    { label: "Selecionados p/ funil", valor: kpis.naoAvaliados, cor: "" },
     { label: "Com dados de campo", valor: kpis.comDadosDeCampo, cor: "" },
     { label: "Prontos p/ decisão", valor: kpis.prontosParaDecisao, cor: "text-green" },
     { label: "Desconto ≥ 40%", valor: kpis.descontoMaiorIgual40, cor: "" },
@@ -185,7 +200,7 @@ export function Triagem() {
         {data?.items.map((item) => (
           <div
             key={item.lote_id}
-            onClick={() => navigate(`/imoveis/${item.lote_id}`)}
+            onClick={() => selecionarEAbrir(item)}
             className="grid cursor-pointer grid-cols-[2.4fr_0.75fr_1fr_1fr_0.7fr_1.15fr_1.35fr_0.95fr] items-center gap-[14px] border-t border-divider px-[18px] py-[13px] hover:bg-surface3"
           >
             <div className="min-w-0">
@@ -195,6 +210,11 @@ export function Triagem() {
                 {formatArea(item.area_privativa_m2)}
                 {item.quartos ? ` · ${item.quartos}q` : ""}
               </div>
+              {item.etapa === "descartado" && (
+                <div className="mt-[3px] truncate font-mono text-[10.5px] text-red">
+                  Descartado{item.motivo_descarte ? `: ${item.motivo_descarte}` : ""}
+                </div>
+              )}
             </div>
             <div className="text-[13px] capitalize">{item.tipo}</div>
             <MoneyValue value={item.preco_venda} className="text-right text-[12.5px]" />
@@ -228,23 +248,38 @@ export function Triagem() {
               <div className="truncate text-[11px] text-label">{notaDadosDeCampo(item)}</div>
             </div>
             <div className="flex justify-end gap-[6px]">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate(`/imoveis/${item.lote_id}`);
-                }}
-                className="rounded-sm border border-greenBorder bg-greenBg px-2 py-1 text-[11.5px] text-green"
-              >
-                Preencher
-              </button>
-              <button
-                type="button"
-                onClick={(e) => cortar(item, e)}
-                className="rounded-sm border border-border bg-redBg px-2 py-1 text-[11.5px] text-red"
-              >
-                Corta
-              </button>
+              {item.etapa === "descartado" ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    selecionarEAbrir(item);
+                  }}
+                  className="rounded-sm border border-amberBorder bg-amberBg px-2 py-1 text-[11.5px] text-amber"
+                >
+                  Reconsiderar
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      selecionarEAbrir(item);
+                    }}
+                    className="rounded-sm border border-greenBorder bg-greenBg px-2 py-1 text-[11.5px] text-green"
+                  >
+                    Preencher
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => cortar(item, e)}
+                    className="rounded-sm border border-border bg-redBg px-2 py-1 text-[11.5px] text-red"
+                  >
+                    Corta
+                  </button>
+                </>
+              )}
             </div>
           </div>
         ))}

@@ -8,6 +8,7 @@ import { formatPercent } from "../lib/format";
 const CHAVES_RESUMO = ["valor_mercado", "iptu_atraso", "condominio_atraso", "ocupacao", "reforma"] as const;
 
 const ETAPA_COR: Record<Etapa, string> = {
+  triagem: "#B4AF9F",
   nao_avaliado: "#9C978A",
   pesquisa_campo: "#7C7768",
   analise_financeira: "#8A6B14",
@@ -17,6 +18,7 @@ const ETAPA_COR: Record<Etapa, string> = {
 };
 
 const ETAPA_TITULO: Record<Etapa, string> = {
+  triagem: "Em triagem",
   nao_avaliado: "Não avaliados",
   pesquisa_campo: "Pesquisa de campo",
   analise_financeira: "Análise financeira",

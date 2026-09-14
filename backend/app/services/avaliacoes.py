@@ -9,7 +9,7 @@ from app.models.enums import Etapa
 def obter_ou_criar_avaliacao(db: Session, lote_id: uuid.UUID, usuario_id: uuid.UUID) -> Avaliacao:
     avaliacao = db.query(Avaliacao).filter_by(lote_id=lote_id, usuario_id=usuario_id).one_or_none()
     if avaliacao is None:
-        avaliacao = Avaliacao(lote_id=lote_id, usuario_id=usuario_id, etapa=Etapa.NAO_AVALIADO)
+        avaliacao = Avaliacao(lote_id=lote_id, usuario_id=usuario_id, etapa=Etapa.TRIAGEM)
         db.add(avaliacao)
         db.flush()
     return avaliacao
@@ -27,7 +27,7 @@ def obter_ou_criar_avaliacoes(
     por_lote = {a.lote_id: a for a in existentes}
     faltando = [lid for lid in lote_ids if lid not in por_lote]
     for lid in faltando:
-        nova = Avaliacao(lote_id=lid, usuario_id=usuario_id, etapa=Etapa.NAO_AVALIADO)
+        nova = Avaliacao(lote_id=lid, usuario_id=usuario_id, etapa=Etapa.TRIAGEM)
         db.add(nova)
         por_lote[lid] = nova
     if faltando:

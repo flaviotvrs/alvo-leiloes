@@ -23,12 +23,15 @@ router = APIRouter(prefix="/avaliacoes", tags=["avaliacoes"])
 CHAVES_TEXTO = {"aceita_fgts", "ocupacao"}
 
 TRANSICOES_VALIDAS: dict[Etapa, set[Etapa]] = {
+    Etapa.TRIAGEM: {Etapa.NAO_AVALIADO, Etapa.DESCARTADO},
     Etapa.NAO_AVALIADO: {Etapa.PESQUISA_CAMPO, Etapa.DESCARTADO},
     Etapa.PESQUISA_CAMPO: {Etapa.ANALISE_FINANCEIRA, Etapa.DESCARTADO},
     Etapa.ANALISE_FINANCEIRA: {Etapa.DECISAO, Etapa.PESQUISA_CAMPO, Etapa.DESCARTADO},
     Etapa.DECISAO: {Etapa.APROVADO_LANCE, Etapa.ANALISE_FINANCEIRA, Etapa.DESCARTADO},
     Etapa.APROVADO_LANCE: {Etapa.DESCARTADO},
-    Etapa.DESCARTADO: set(),
+    # "Reconsiderar" na Triagem: descartados continuam listados/buscáveis lá e podem voltar
+    # para o funil (ver docs/requisitos/mvp1-ajustes/02-triagem-seleciona-funil.md).
+    Etapa.DESCARTADO: {Etapa.NAO_AVALIADO},
 }
 
 

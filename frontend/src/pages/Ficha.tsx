@@ -18,6 +18,7 @@ import { formatArea, formatDateTime, formatMoney } from "../lib/format";
 
 const ETAPAS_ORDEM: Etapa[] = ["nao_avaliado", "pesquisa_campo", "analise_financeira", "decisao", "aprovado_lance"];
 const ETAPA_LABEL: Record<Etapa, string> = {
+  triagem: "Triagem",
   nao_avaliado: "Não avaliado",
   pesquisa_campo: "Pesquisa de campo",
   analise_financeira: "Análise financeira",
@@ -26,6 +27,7 @@ const ETAPA_LABEL: Record<Etapa, string> = {
   descartado: "Descartado",
 };
 const PROXIMA_ETAPA: Partial<Record<Etapa, Etapa>> = {
+  triagem: "nao_avaliado",
   nao_avaliado: "pesquisa_campo",
   pesquisa_campo: "analise_financeira",
   analise_financeira: "decisao",

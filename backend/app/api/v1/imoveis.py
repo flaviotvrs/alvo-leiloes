@@ -81,7 +81,7 @@ def listar_imoveis(
         query = query.filter(LoteLeilao.desconto_pct >= desconto_min)
     if etapa:
         condicoes = [Avaliacao.etapa.in_(etapa)]
-        if Etapa.NAO_AVALIADO in etapa:
+        if Etapa.TRIAGEM in etapa:
             condicoes.append(Avaliacao.id.is_(None))
         query = query.filter(or_(*condicoes))
     if sem_dados_campo:
@@ -130,6 +130,7 @@ def listar_imoveis(
             aceita_financiamento=lote.aceita_financiamento,
             aceita_fgts=lote.aceita_fgts,
             etapa=avaliacao.etapa,
+            motivo_descarte=avaliacao.motivo_descarte,
             resumo_campos=resumos[avaliacao.id],
         )
         for lote, imovel, avaliacao in linhas

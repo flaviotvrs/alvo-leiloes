@@ -4,6 +4,7 @@
 
 export type Origem = "base" | "manual" | "coleta_guiada" | "automacao";
 export type Etapa =
+  | "triagem"
   | "nao_avaliado"
   | "pesquisa_campo"
   | "analise_financeira"
@@ -42,6 +43,7 @@ export interface ImovelListItem {
   aceita_financiamento: boolean;
   aceita_fgts: AceitaFgts | null;
   etapa: Etapa;
+  motivo_descarte: string | null;
   resumo_campos: ResumoCampos;
 }
 

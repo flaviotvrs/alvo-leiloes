@@ -58,6 +58,15 @@ export function FiltroPainel({ filtros, onChange, onLimpar, cidades }: Props) {
           </button>
           <button
             type="button"
+            onClick={() => onChange({ ocultar_descartados: !filtros.ocultar_descartados })}
+            className={`${pill} ${
+              filtros.ocultar_descartados ? "border-ink bg-ink text-onDark" : "border-border2 bg-transparent text-ink3"
+            }`}
+          >
+            Ocultar descartados
+          </button>
+          <button
+            type="button"
             onClick={onLimpar}
             className={`${pill} border-border2 bg-transparent text-ink3 hover:bg-[#E6E3DA]`}
           >

@@ -15,6 +15,7 @@ class FonteLeilao(str, Enum):
 
 
 class Etapa(str, Enum):
+    TRIAGEM = "triagem"
     NAO_AVALIADO = "nao_avaliado"
     PESQUISA_CAMPO = "pesquisa_campo"
     ANALISE_FINANCEIRA = "analise_financeira"

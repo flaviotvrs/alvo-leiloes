@@ -35,6 +35,7 @@ class ImovelListItem(BaseModel):
     aceita_financiamento: bool
     aceita_fgts: AceitaFgts | None
     etapa: Etapa
+    motivo_descarte: str | None
     resumo_campos: ResumoCampos
 
 

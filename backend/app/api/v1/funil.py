@@ -51,6 +51,7 @@ def funil(
         .join(Imovel, LoteLeilao.imovel_id == Imovel.id)
         .filter(LoteLeilao.ativo.is_(True))
         .filter(Avaliacao.usuario_id == usuario.id)
+        .filter(Avaliacao.etapa != Etapa.TRIAGEM)
         .all()
     )
 
