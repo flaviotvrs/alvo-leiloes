@@ -149,6 +149,10 @@ def atualizar_avaliacao(
         avaliacao.checklist = {**avaliacao.checklist, **body.checklist}
     if body.teto_lance is not None:
         avaliacao.teto_lance = body.teto_lance
+    if "margem_desejada_pct" in body.model_fields_set:
+        # aqui, ao contrário de teto_lance, None é um valor válido e explícito: "voltar a
+        # usar o piso global do usuário" (ver docs/requisitos/mvp1-ajustes/03-lance-maximo-sugerido.md)
+        avaliacao.margem_desejada_pct = body.margem_desejada_pct
     db.commit()
     return {"status": "ok"}
 

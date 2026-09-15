@@ -34,6 +34,7 @@ class Avaliacao(UUIDPk, Base):
     etapa_desde: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     motivo_descarte: Mapped[str | None]
     teto_lance: Mapped[float | None] = mapped_column(Numeric(14, 2))
+    margem_desejada_pct: Mapped[float | None] = mapped_column(Numeric(5, 2))
     anotacoes: Mapped[str] = mapped_column(default="")
     checklist: Mapped[dict] = mapped_column(JSONB, default=lambda: dict(CHECKLIST_PADRAO))
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

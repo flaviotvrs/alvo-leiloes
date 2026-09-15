@@ -32,6 +32,22 @@ export function formatArea(value: Num): string {
   return `${num.toFixed(2).replace(".", ",")} m²`;
 }
 
+/** Inverso de `formatMoney`/`formatPercent`: o usuário digita `3.400` (milhar por ponto) ou
+ * `2,5` (decimal por vírgula) — igual ao `parse_decimal_br` do backend (services/numeros.py)
+ * — e isso vira o formato canônico (ponto decimal) que os campos `Decimal` da API aceitam. */
+export function parseDecimalBr(texto: string): string {
+  let t = texto.trim();
+  if (t.includes(",")) {
+    t = t.replaceAll(".", "").replace(",", ".");
+  } else {
+    const partes = t.split(".");
+    if (partes.length > 1 && partes[partes.length - 1].length === 3 && partes.every((p) => /^\d+$/.test(p))) {
+      t = t.replaceAll(".", "");
+    }
+  }
+  return t;
+}
+
 export function formatDateTime(value: string | null): string {
   if (!value) return "—";
   return new Date(value).toLocaleString("pt-BR", {

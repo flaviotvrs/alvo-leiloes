@@ -7,6 +7,7 @@ import { useEventos } from "../api/hooks/useEventos";
 import { useEventosLote } from "../api/hooks/useEventosLote";
 import { useFicha } from "../api/hooks/useFicha";
 import { useMoverEtapa } from "../api/hooks/useMoverEtapa";
+import { useParametros } from "../api/hooks/useParametros";
 import { usePatchAvaliacao } from "../api/hooks/usePatchAvaliacao";
 import { useSalvarCampo } from "../api/hooks/useSalvarCampo";
 import type { CampoDTO, Checklist, Etapa, EventoDTO, GrupoResultado, Linha } from "../api/types";
@@ -15,7 +16,7 @@ import { MoneyValue } from "../components/MoneyValue";
 import { PercentValue } from "../components/PercentValue";
 import { ProcedenciaChip } from "../components/ProcedenciaChip";
 import type { OrigemOuVazio } from "../lib/procedencia";
-import { formatArea, formatDateTime, formatMoney } from "../lib/format";
+import { formatArea, formatDateTime, formatMoney, formatPercent, parseDecimalBr } from "../lib/format";
 
 const ETAPAS_ORDEM: Etapa[] = ["nao_avaliado", "pesquisa_campo", "analise_financeira", "decisao", "aprovado_lance"];
 const ETAPA_LABEL: Record<Etapa, string> = {
@@ -236,6 +237,7 @@ export function Ficha() {
   const { loteId } = useParams<{ loteId: string }>();
   const navigate = useNavigate();
   const { data: ficha, isLoading } = useFicha(loteId);
+  const { data: parametros } = useParametros();
   const { data: eventosAvaliacao } = useEventos(ficha?.avaliacao.id);
   const { data: eventosLote } = useEventosLote(loteId);
   const eventos = [...(eventosAvaliacao ?? []), ...(eventosLote ?? [])].sort(
@@ -247,12 +249,23 @@ export function Ficha() {
   const [contaAberta, setContaAberta] = useState(true);
   const [anotacoes, setAnotacoes] = useState<string | undefined>(undefined);
   const anotacoesTimer = useRef<number | undefined>(undefined);
+  const [margemRascunho, setMargemRascunho] = useState<string | undefined>(undefined);
+  const margemTimer = useRef<number | undefined>(undefined);
+  const [tetoLanceRascunho, setTetoLanceRascunho] = useState<string | undefined>(undefined);
+  const tetoLanceTimer = useRef<number | undefined>(undefined);
 
   if (isLoading || !ficha) {
     return <div className="p-[22px_28px_60px] text-[13px] text-textSoft">Carregando…</div>;
   }
 
-  const { imovel, lote, avaliacao, campos, resultado_calculo: resultado } = ficha;
+  const {
+    imovel,
+    lote,
+    avaliacao,
+    campos,
+    resultado_calculo: resultado,
+    lance_maximo_sugerido: lanceMaximoSugerido,
+  } = ficha;
   const totalCampos = CAMPOS_FICHA.length;
   const preenchidos = CAMPOS_FICHA.filter((c) => campos[c.chave]).length;
   const indiceEtapa = ETAPAS_ORDEM.indexOf(avaliacao.etapa);
@@ -264,6 +277,36 @@ export function Ficha() {
     anotacoesTimer.current = window.setTimeout(() => {
       patchAvaliacao.mutate({ avaliacaoId: avaliacao.id, anotacoes: valor });
     }, 500);
+  }
+
+  function agendarMargemDesejada(valor: string) {
+    setMargemRascunho(valor);
+    window.clearTimeout(margemTimer.current);
+    margemTimer.current = window.setTimeout(() => {
+      const texto = valor.trim();
+      patchAvaliacao.mutate({
+        avaliacaoId: avaliacao.id,
+        margemDesejadaPct: texto === "" ? null : parseDecimalBr(texto),
+      });
+    }, 500);
+  }
+
+  function agendarTetoLance(valor: string) {
+    setTetoLanceRascunho(valor);
+    window.clearTimeout(tetoLanceTimer.current);
+    tetoLanceTimer.current = window.setTimeout(() => {
+      const texto = valor.trim();
+      patchAvaliacao.mutate({
+        avaliacaoId: avaliacao.id,
+        tetoLance: texto === "" ? null : parseDecimalBr(texto),
+      });
+    }, 500);
+  }
+
+  function usarLanceMaximoComoTeto() {
+    if (!lanceMaximoSugerido) return;
+    setTetoLanceRascunho(lanceMaximoSugerido);
+    patchAvaliacao.mutate({ avaliacaoId: avaliacao.id, tetoLance: lanceMaximoSugerido });
   }
 
   function avancar() {
@@ -279,11 +322,13 @@ export function Ficha() {
 
   const corMargem =
     resultado.veredito === "aprovado" ? "bg-greenBg" : resultado.veredito === "reprovado" ? "bg-redBg" : "bg-surface2";
+  const margemAlvoPct = avaliacao.margem_desejada_pct ?? parametros?.piso_margem_pct ?? null;
+  const pisoTexto = `piso${avaliacao.margem_desejada_pct !== null ? " deste imóvel" : ""} de ${formatPercent(margemAlvoPct)}`;
   const notaMargem =
     resultado.veredito === "aprovado"
-      ? "Acima do piso de 20% — segue no funil."
+      ? `Acima do ${pisoTexto} — segue no funil.`
       : resultado.veredito === "reprovado"
-        ? "Abaixo do piso de 20% — a regra é não participar."
+        ? `Abaixo do ${pisoTexto} — a regra é não participar.`
         : "Preencha o valor de revenda para ver a margem.";
 
   return (
@@ -443,6 +488,72 @@ export function Ficha() {
                     equivale a {resultado.margem_revenda_pct.replace(".", ",")}% sobre a revenda
                   </div>
                 )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-[18px] border-t border-dashed border-dividerDash p-[16px_22px]">
+              <div>
+                <div className="font-mono text-[9.5px] uppercase tracking-[0.13em] text-label">
+                  Margem desejada · este imóvel
+                </div>
+                <div className="mt-2 flex items-center gap-2">
+                  <input
+                    className="w-[90px] rounded-sm border border-border2 bg-white px-[9px] py-[7px] text-right text-[13px]"
+                    value={margemRascunho ?? avaliacao.margem_desejada_pct ?? ""}
+                    onChange={(e) => agendarMargemDesejada(e.target.value)}
+                    placeholder="0"
+                  />
+                  <span className="text-[13px] text-labelSoft">%</span>
+                </div>
+                <div className="mt-1 text-[11.5px] text-labelSoft">
+                  Em branco, usa o piso global ({parametros ? formatPercent(parametros.piso_margem_pct) : "…"}
+                  ). Preenchida, também muda o veredito acima só deste imóvel.
+                </div>
+              </div>
+
+              <div>
+                <div className="font-mono text-[9.5px] uppercase tracking-[0.13em] text-label">
+                  Lance máximo sugerido
+                </div>
+                {lanceMaximoSugerido === null ? (
+                  <div className="mt-2 text-[13px] text-labelSoft">
+                    Defina o valor de mercado para calcular o lance máximo.
+                  </div>
+                ) : Number(lanceMaximoSugerido) === 0 ? (
+                  <div className="mt-2 text-[12.5px] text-red">
+                    Nenhum lance atinge a margem desejada de {formatPercent(margemAlvoPct)} neste imóvel, nem
+                    arrematando de graça — os custos fixos já superam o retorno esperado.
+                  </div>
+                ) : (
+                  <>
+                    <MoneyValue value={lanceMaximoSugerido} className="mt-1 block text-[19px] font-semibold" />
+                    <button
+                      type="button"
+                      onClick={usarLanceMaximoComoTeto}
+                      className="mt-2 rounded-sm border border-border2 px-2 py-1 text-[11.5px] text-ink3 hover:bg-surface2"
+                    >
+                      Usar este valor no teto de lance
+                    </button>
+                  </>
+                )}
+              </div>
+
+              <div>
+                <div className="font-mono text-[9.5px] uppercase tracking-[0.13em] text-label">
+                  Teto de lance (manual)
+                </div>
+                <div className="mt-2 flex items-center gap-2">
+                  <span className="text-[13px] text-labelSoft">R$</span>
+                  <input
+                    className="w-[130px] rounded-sm border border-border2 bg-white px-[9px] py-[7px] text-right text-[13px]"
+                    value={tetoLanceRascunho ?? avaliacao.teto_lance ?? ""}
+                    onChange={(e) => agendarTetoLance(e.target.value)}
+                    placeholder="0"
+                  />
+                </div>
+                <div className="mt-1 text-[11.5px] text-labelSoft">
+                  Confirme ou sobrescreva à mão — a sugestão acima não altera este valor sozinha.
+                </div>
               </div>
             </div>
 
