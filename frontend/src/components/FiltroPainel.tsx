@@ -67,6 +67,15 @@ export function FiltroPainel({ filtros, onChange, onLimpar, cidades }: Props) {
           </button>
           <button
             type="button"
+            onClick={() => onChange({ incluir_inativos: !filtros.incluir_inativos })}
+            className={`${pill} ${
+              filtros.incluir_inativos ? "border-ink bg-ink text-onDark" : "border-border2 bg-transparent text-ink3"
+            }`}
+          >
+            Mostrar leilões finalizados/descontinuados
+          </button>
+          <button
+            type="button"
             onClick={onLimpar}
             className={`${pill} border-border2 bg-transparent text-ink3 hover:bg-[#E6E3DA]`}
           >

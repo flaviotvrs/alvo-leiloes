@@ -16,7 +16,7 @@ from app.models.usuario import Usuario
 from app.seeds.referencias import carregar_emolumentos, carregar_itbi
 from app.services.avaliacoes import obter_ou_criar_avaliacao
 
-FIXTURE_CAIXA = Path(__file__).parent / "fixtures" / "sample_caixa.xlsx"
+FIXTURE_CAIXA = Path(__file__).parent / "fixtures" / "sample_caixa.csv"
 
 USUARIO_DEV_EMAIL = "flaviotvrs@gmail.com"
 USUARIO_DEV_NOME = "Flavio"

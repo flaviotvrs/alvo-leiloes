@@ -45,7 +45,10 @@ export function formatDateTime(value: string | null): string {
 
 export function formatDate(value: string | null): string {
   if (!value) return "—";
-  return new Date(value).toLocaleDateString("pt-BR", {
+  // datas "YYYY-MM-DD" (sem hora) não têm timezone — `new Date(string)` as interpreta como
+  // UTC e pode voltar um dia em fusos negativos (ex. Brasil); monta a data em horário local.
+  const [ano, mes, dia] = value.split("-").map(Number);
+  return new Date(ano, mes - 1, dia).toLocaleDateString("pt-BR", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",

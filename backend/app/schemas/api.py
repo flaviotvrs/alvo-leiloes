@@ -37,6 +37,7 @@ class ImovelListItem(BaseModel):
     etapa: Etapa
     motivo_descarte: str | None
     resumo_campos: ResumoCampos
+    ativo: bool
 
 
 class ImoveisListResponse(BaseModel):
@@ -90,6 +91,7 @@ class LoteReadOnly(BaseModel):
     praca_2_valor: Decimal | None
     praca_2_data: date | None
     url_fonte: str | None
+    ativo: bool
 
 
 class AvaliacaoDTO(BaseModel):
@@ -146,6 +148,7 @@ class FunilCard(BaseModel):
     desconto_pct: Decimal | None
     resumo_campos: ResumoCampos
     pilula_estado: str
+    ativo: bool
 
 
 class FunilColuna(BaseModel):
@@ -166,10 +169,13 @@ class ImportacaoDTO(BaseModel):
     id: UUID
     fonte: FonteLeilao
     arquivo_nome: str | None
+    arquivo_gerado_em: date | None
     linhas_lidas: int
     criados: int
     atualizados: int
     inalterados: int
+    inativados: int
+    reativados: int
     erros: list[dict[str, Any]]
     status: StatusImportacao
     iniciada_em: datetime

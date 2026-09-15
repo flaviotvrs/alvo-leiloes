@@ -4,11 +4,12 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAceitarSugestao } from "../api/hooks/useAceitarSugestao";
 import { useDescartar } from "../api/hooks/useDescartar";
 import { useEventos } from "../api/hooks/useEventos";
+import { useEventosLote } from "../api/hooks/useEventosLote";
 import { useFicha } from "../api/hooks/useFicha";
 import { useMoverEtapa } from "../api/hooks/useMoverEtapa";
 import { usePatchAvaliacao } from "../api/hooks/usePatchAvaliacao";
 import { useSalvarCampo } from "../api/hooks/useSalvarCampo";
-import type { CampoDTO, Checklist, Etapa, GrupoResultado, Linha } from "../api/types";
+import type { CampoDTO, Checklist, Etapa, EventoDTO, GrupoResultado, Linha } from "../api/types";
 import { LinhaConta } from "../components/LinhaConta";
 import { MoneyValue } from "../components/MoneyValue";
 import { PercentValue } from "../components/PercentValue";
@@ -235,7 +236,11 @@ export function Ficha() {
   const { loteId } = useParams<{ loteId: string }>();
   const navigate = useNavigate();
   const { data: ficha, isLoading } = useFicha(loteId);
-  const { data: eventos } = useEventos(ficha?.avaliacao.id);
+  const { data: eventosAvaliacao } = useEventos(ficha?.avaliacao.id);
+  const { data: eventosLote } = useEventosLote(loteId);
+  const eventos = [...(eventosAvaliacao ?? []), ...(eventosLote ?? [])].sort(
+    (a, b) => new Date(b.criado_em).getTime() - new Date(a.criado_em).getTime(),
+  );
   const moverEtapa = useMoverEtapa(loteId ?? "");
   const descartar = useDescartar(loteId ?? "");
   const patchAvaliacao = usePatchAvaliacao(loteId ?? "");
@@ -300,6 +305,12 @@ export function Ficha() {
               </span>
               <span className="font-mono text-[10.5px] text-labelSoft">Importado da planilha da Caixa</span>
             </div>
+            {!lote.ativo && (
+              <div className="border-b border-amberBorder bg-amberBg px-5 py-[9px] font-mono text-[11px] text-amber">
+                Leilão finalizado/descontinuado — este imóvel saiu da planilha de origem. Os dados abaixo podem
+                estar desatualizados; a análise já feita continua preservada.
+              </div>
+            )}
             <div className="p-[18px_22px]">
               <h1 className="m-0 font-serif text-[26px] font-semibold tracking-[-0.015em]">{imovel.endereco}</h1>
               <div className="mt-1 text-[13.5px] text-textMuted">
@@ -564,11 +575,25 @@ export function Ficha() {
   );
 }
 
-function textoEvento(evento: { tipo: string; payload: Record<string, unknown> }): string {
+function textoEvento(evento: EventoDTO): string {
   const payload = evento.payload;
   switch (evento.tipo) {
     case "importacao":
-      return "Importado da planilha da Caixa.";
+      switch (payload.acao) {
+        case "criado":
+          return "Criado a partir da planilha da Caixa.";
+        case "atualizado": {
+          const mudancas = (payload.mudancas as Record<string, { de: unknown; para: unknown }>) ?? {};
+          const campos = Object.keys(mudancas).join(", ");
+          return `Atualizado pela importação (${campos || "sem detalhe"}).`;
+        }
+        case "inativado":
+          return "Inativado: saiu da planilha da Caixa nesta carga.";
+        case "reativado":
+          return "Reativado: voltou a aparecer na planilha da Caixa.";
+        default:
+          return "Importado da planilha da Caixa.";
+      }
     case "campo_alterado":
       return `Campo "${payload.chave}" alterado de "${payload.de ?? "vazio"}" para "${payload.para ?? "vazio"}".`;
     case "etapa_alterada":

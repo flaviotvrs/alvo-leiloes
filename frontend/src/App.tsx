@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { NavBar } from "./components/NavBar";
 import { Ficha } from "./pages/Ficha";
 import { Funil } from "./pages/Funil";
+import { Importacoes } from "./pages/Importacoes";
 import { Triagem } from "./pages/Triagem";
 
 export function App() {
@@ -13,6 +14,7 @@ export function App() {
         <Route path="/" element={<Navigate to="/triagem" replace />} />
         <Route path="/triagem" element={<Triagem />} />
         <Route path="/funil" element={<Funil />} />
+        <Route path="/importacoes" element={<Importacoes />} />
         <Route path="/imoveis/:loteId" element={<Ficha />} />
       </Routes>
     </div>

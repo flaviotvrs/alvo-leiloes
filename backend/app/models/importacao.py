@@ -1,7 +1,7 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, func
+from sqlalchemy import Date, DateTime, ForeignKey, Integer, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -21,10 +21,13 @@ class Importacao(UUIDPk, Base):
     fonte: Mapped[FonteLeilao] = mapped_column(str_enum(FonteLeilao, "fonte_leilao"))
     arquivo_nome: Mapped[str | None]
     arquivo_hash: Mapped[str | None] = mapped_column(index=True)
+    arquivo_gerado_em: Mapped[date | None] = mapped_column(Date)
     linhas_lidas: Mapped[int] = mapped_column(Integer, default=0)
     criados: Mapped[int] = mapped_column(Integer, default=0)
     atualizados: Mapped[int] = mapped_column(Integer, default=0)
     inalterados: Mapped[int] = mapped_column(Integer, default=0)
+    inativados: Mapped[int] = mapped_column(Integer, default=0)
+    reativados: Mapped[int] = mapped_column(Integer, default=0)
     erros: Mapped[list] = mapped_column(JSONB, default=list)
     iniciada_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     concluida_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

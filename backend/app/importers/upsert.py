@@ -1,10 +1,11 @@
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 from sqlalchemy.orm import Session
 
 from app.importers.base import LoteNormalizado
-from app.models.enums import FonteLeilao, StatusImportacao
+from app.models.enums import FonteLeilao, StatusImportacao, TipoEvento
+from app.models.evento_lote import EventoLote
 from app.models.imovel import Imovel
 from app.models.importacao import Importacao
 from app.models.lote_leilao import LoteLeilao
@@ -30,6 +31,8 @@ def aplicar_importacao(
     lotes: list[LoteNormalizado],
     arquivo_nome: str | None,
     arquivo_hash: str | None,
+    arquivo_gerado_em: date | None = None,
+    erros_iniciais: list[dict] | None = None,
     executada_por: uuid.UUID | None,
 ) -> Importacao:
     """Upsert por (fonte, codigo_externo). Nunca escreve em `campo_avaliacao` — dado do
@@ -49,6 +52,7 @@ def aplicar_importacao(
         fonte=fonte,
         arquivo_nome=arquivo_nome,
         arquivo_hash=arquivo_hash,
+        arquivo_gerado_em=arquivo_gerado_em,
         executada_por=executada_por,
         status=StatusImportacao.PROCESSANDO,
     )
@@ -56,8 +60,8 @@ def aplicar_importacao(
     db.flush()
 
     codigos_na_carga: set[str] = set()
-    criados = atualizados = inalterados = 0
-    erros: list[dict] = []
+    criados = atualizados = inalterados = reativados = 0
+    erros: list[dict] = list(erros_iniciais or [])
 
     for lote in lotes:
         try:
@@ -71,24 +75,55 @@ def aplicar_importacao(
                 criados += 1
                 _criar_lote(db, fonte=fonte, lote=lote, importacao_id=importacao.id)
             else:
-                mudou = _atualizar_lote(lote_existente, lote)
+                estava_inativo = not lote_existente.ativo
+                mudancas = _atualizar_lote(lote_existente, lote)
                 lote_existente.ativo = True
-                if mudou:
+                if mudancas:
                     atualizados += 1
+                    db.add(
+                        EventoLote(
+                            lote_id=lote_existente.id,
+                            tipo=TipoEvento.IMPORTACAO,
+                            importacao_id=importacao.id,
+                            payload={"acao": "atualizado", "mudancas": mudancas},
+                        )
+                    )
                 else:
                     inalterados += 1
+                if estava_inativo:
+                    reativados += 1
+                    db.add(
+                        EventoLote(
+                            lote_id=lote_existente.id,
+                            tipo=TipoEvento.IMPORTACAO,
+                            importacao_id=importacao.id,
+                            payload={"acao": "reativado", "importacao_id": str(importacao.id)},
+                        )
+                    )
         except Exception as exc:  # noqa: BLE001 -- erro por linha não deve abortar a carga
             erros.append({"codigo_externo": lote.codigo_externo, "erro": str(exc)})
 
+    inativados = 0
     lotes_ativos_da_fonte = db.query(LoteLeilao).filter_by(fonte=fonte, ativo=True).all()
     for lote_db in lotes_ativos_da_fonte:
         if lote_db.codigo_externo not in codigos_na_carga:
             lote_db.ativo = False
+            inativados += 1
+            db.add(
+                EventoLote(
+                    lote_id=lote_db.id,
+                    tipo=TipoEvento.IMPORTACAO,
+                    importacao_id=importacao.id,
+                    payload={"acao": "inativado", "importacao_id": str(importacao.id)},
+                )
+            )
 
-    importacao.linhas_lidas = len(lotes)
+    importacao.linhas_lidas = len(lotes) + len(erros_iniciais or [])
     importacao.criados = criados
     importacao.atualizados = atualizados
     importacao.inalterados = inalterados
+    importacao.inativados = inativados
+    importacao.reativados = reativados
     importacao.erros = erros
     importacao.status = StatusImportacao.CONCLUIDA
     importacao.concluida_em = datetime.now(UTC)
@@ -141,12 +176,25 @@ def _criar_lote(
     db.add(lote_db)
     db.flush()
 
+    db.add(
+        EventoLote(
+            lote_id=lote_db.id,
+            tipo=TipoEvento.IMPORTACAO,
+            importacao_id=importacao_id,
+            payload={"acao": "criado", "fonte": fonte.value, "codigo_externo": lote.codigo_externo},
+        )
+    )
 
-def _atualizar_lote(lote_existente: LoteLeilao, novo: LoteNormalizado) -> bool:
-    mudou = False
+
+def _atualizar_lote(lote_existente: LoteLeilao, novo: LoteNormalizado) -> dict[str, dict[str, str | None]]:
+    mudancas: dict[str, dict[str, str | None]] = {}
     for campo in _CAMPOS_ATUALIZAVEIS:
+        valor_anterior = getattr(lote_existente, campo)
         valor_novo = getattr(novo, campo)
-        if getattr(lote_existente, campo) != valor_novo:
+        if valor_anterior != valor_novo:
             setattr(lote_existente, campo, valor_novo)
-            mudou = True
-    return mudou
+            mudancas[campo] = {
+                "de": str(valor_anterior) if valor_anterior is not None else None,
+                "para": str(valor_novo) if valor_novo is not None else None,
+            }
+    return mudancas

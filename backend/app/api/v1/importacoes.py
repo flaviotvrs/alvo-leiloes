@@ -18,10 +18,13 @@ def _to_dto(i: Importacao) -> ImportacaoDTO:
         id=i.id,
         fonte=i.fonte,
         arquivo_nome=i.arquivo_nome,
+        arquivo_gerado_em=i.arquivo_gerado_em,
         linhas_lidas=i.linhas_lidas,
         criados=i.criados,
         atualizados=i.atualizados,
         inalterados=i.inalterados,
+        inativados=i.inativados,
+        reativados=i.reativados,
         erros=i.erros,
         status=i.status,
         iniciada_em=i.iniciada_em,
@@ -35,10 +38,10 @@ def disparar_importacao(
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(get_current_usuario),
 ) -> ImportacaoDTO:
-    if not arquivo.filename or not arquivo.filename.lower().endswith((".xlsx", ".xls")):
-        raise HTTPException(status_code=422, detail="Envie uma planilha .xlsx da Caixa")
+    if not arquivo.filename or not arquivo.filename.lower().endswith(".csv"):
+        raise HTTPException(status_code=422, detail="Envie a planilha (CSV) da Caixa")
 
-    with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp:
+    with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as tmp:
         tmp.write(arquivo.file.read())
         caminho = Path(tmp.name)
     try:

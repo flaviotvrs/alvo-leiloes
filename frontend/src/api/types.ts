@@ -16,6 +16,7 @@ export type Fonte = "caixa" | "zukerman";
 export type AceitaFgts = "nao_verificado" | "aceita" | "nao_aceita";
 export type Grupo = "aquisicao" | "dividas" | "posse" | "carregamento" | "venda";
 export type Veredito = "aprovado" | "reprovado" | "incompleto";
+export type StatusImportacao = "processando" | "concluida" | "falhou";
 
 export interface ResumoCampos {
   preenchidos: number;
@@ -45,6 +46,7 @@ export interface ImovelListItem {
   etapa: Etapa;
   motivo_descarte: string | null;
   resumo_campos: ResumoCampos;
+  ativo: boolean;
 }
 
 export interface ImoveisListResponse {
@@ -98,6 +100,7 @@ export interface LoteReadOnly {
   praca_2_valor: string | null;
   praca_2_data: string | null;
   url_fonte: string | null;
+  ativo: boolean;
 }
 
 export interface Checklist {
@@ -179,6 +182,7 @@ export interface FunilCard {
   desconto_pct: string | null;
   resumo_campos: ResumoCampos;
   pilula_estado: string;
+  ativo: boolean;
 }
 
 export interface FunilColuna {
@@ -193,4 +197,21 @@ export interface FunilResponse {
   colunas: FunilColuna[];
   base_para_aprovados_pct: string;
   tempo_medio_pesquisa_dias: string | null;
+}
+
+export interface ImportacaoDTO {
+  id: string;
+  fonte: Fonte;
+  arquivo_nome: string | null;
+  arquivo_gerado_em: string | null;
+  linhas_lidas: number;
+  criados: number;
+  atualizados: number;
+  inalterados: number;
+  inativados: number;
+  reativados: number;
+  erros: { codigo_externo: string; erro: string }[];
+  status: StatusImportacao;
+  iniciada_em: string;
+  concluida_em: string | null;
 }

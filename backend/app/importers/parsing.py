@@ -11,10 +11,10 @@ _PALAVRAS_TIPO: tuple[tuple[TipoImovel, tuple[str, ...]], ...] = (
     (TipoImovel.LOJA, ("loja", "sala comercial", "ponto comercial")),
 )
 
-_RE_AREA_PRIVATIVA = re.compile(r"(?:área|area)\s+privativa[^\d]*(\d+(?:[.,]\d+)?)\s*m", re.IGNORECASE)
-_RE_AREA_TERRENO = re.compile(r"(?:área|area)\s+d[eo]\s+terreno[^\d]*(\d+(?:[.,]\d+)?)\s*m", re.IGNORECASE)
-_RE_AREA_TOTAL = re.compile(r"área\s+total[^\d]*(\d+(?:[.,]\d+)?)\s*m", re.IGNORECASE)
-_RE_QUARTOS = re.compile(r"(\d+)\s*(?:quarto|dormit[óo]rio)", re.IGNORECASE)
+_RE_AREA_TOTAL = re.compile(r"(\d+(?:[.,]\d+)?)\s*de\s+[aá]rea\s+total", re.IGNORECASE)
+_RE_AREA_PRIVATIVA = re.compile(r"(\d+(?:[.,]\d+)?)\s*de\s+[aá]rea\s+privativa", re.IGNORECASE)
+_RE_AREA_TERRENO = re.compile(r"(\d+(?:[.,]\d+)?)\s*de\s+[aá]rea\s+d[eo]\s+terreno", re.IGNORECASE)
+_RE_QUARTOS = re.compile(r"(\d+)\s*qto", re.IGNORECASE)
 
 
 def normalizar_texto(texto: str) -> str:
@@ -30,23 +30,28 @@ def inferir_tipo(descricao: str) -> TipoImovel:
     return TipoImovel.OUTRO
 
 
-def _parse_decimal_br(texto: str) -> Decimal:
-    return Decimal(texto.replace(".", "").replace(",", "."))
+def _parse_decimal_area(texto: str) -> Decimal | None:
+    # descrição da Caixa usa "." como separador decimal nas áreas (ex. "37.21"), não o
+    # formato BR de milhar — diferente de Preço/Valor de avaliação na planilha.
+    numero = Decimal(texto.replace(",", "."))
+    # a Caixa sempre preenche as três áreas, mesmo quando não se aplica ao tipo do imóvel
+    # (ex. terreno com área privativa "0.00") — 0 é "não informado", não um valor real.
+    return numero if numero != 0 else None
 
 
 def extrair_area_privativa(descricao: str) -> Decimal | None:
     m = _RE_AREA_PRIVATIVA.search(descricao)
-    return _parse_decimal_br(m.group(1)) if m else None
+    return _parse_decimal_area(m.group(1)) if m else None
 
 
 def extrair_area_terreno(descricao: str) -> Decimal | None:
     m = _RE_AREA_TERRENO.search(descricao)
-    return _parse_decimal_br(m.group(1)) if m else None
+    return _parse_decimal_area(m.group(1)) if m else None
 
 
 def extrair_area_total(descricao: str) -> Decimal | None:
     m = _RE_AREA_TOTAL.search(descricao)
-    return _parse_decimal_br(m.group(1)) if m else None
+    return _parse_decimal_area(m.group(1)) if m else None
 
 
 def extrair_quartos(descricao: str) -> int | None:

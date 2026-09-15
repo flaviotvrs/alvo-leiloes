@@ -45,11 +45,14 @@ def _pilula(db: Session, avaliacao: Avaliacao, resumo) -> str:
 def funil(
     db: Session = Depends(get_db), usuario: Usuario = Depends(get_current_usuario)
 ) -> FunilResponse:
+    # Sem filtro de `ativo`: um lote que já tem avaliação em andamento continua aparecendo
+    # aqui mesmo depois de sair da planilha de origem (leilão finalizado/descontinuado) —
+    # é justamente onde o usuário está investindo tempo e precisa saber (ver
+    # docs/requisitos/mvp1-ajustes/04-importacao-caixa-e-historico.md).
     avaliacoes_ativas = (
         db.query(Avaliacao, LoteLeilao, Imovel)
         .join(LoteLeilao, Avaliacao.lote_id == LoteLeilao.id)
         .join(Imovel, LoteLeilao.imovel_id == Imovel.id)
-        .filter(LoteLeilao.ativo.is_(True))
         .filter(Avaliacao.usuario_id == usuario.id)
         .filter(Avaliacao.etapa != Etapa.TRIAGEM)
         .all()
@@ -77,6 +80,7 @@ def funil(
                     desconto_pct=lote.desconto_pct,
                     resumo_campos=resumo,
                     pilula_estado=_pilula(db, avaliacao, resumo),
+                    ativo=lote.ativo,
                 )
             )
         colunas.append(

@@ -1,6 +1,7 @@
 from app.models.avaliacao import Avaliacao
 from app.models.campo_avaliacao import CampoAvaliacao
 from app.models.evento_avaliacao import EventoAvaliacao
+from app.models.evento_lote import EventoLote
 from app.models.imovel import Imovel
 from app.models.importacao import Importacao
 from app.models.lote_leilao import LoteLeilao
@@ -13,6 +14,7 @@ __all__ = [
     "CampoAvaliacao",
     "EmolumentoFaixa",
     "EventoAvaliacao",
+    "EventoLote",
     "Importacao",
     "Imovel",
     "ItbiMunicipio",

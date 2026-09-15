@@ -9,11 +9,13 @@ from app.api.deps import get_current_usuario, get_db
 from app.models.avaliacao import Avaliacao
 from app.models.campo_avaliacao import CampoAvaliacao
 from app.models.enums import AceitaFgts, Etapa, TipoImovel
+from app.models.evento_lote import EventoLote
 from app.models.imovel import Imovel
 from app.models.lote_leilao import LoteLeilao
 from app.models.usuario import Usuario
 from app.schemas.api import (
     CampoDTO,
+    EventoDTO,
     FacetasResponse,
     FichaResponse,
     ImovelListItem,
@@ -43,6 +45,7 @@ def listar_imoveis(
     desconto_min: Decimal | None = None,
     sem_dados_campo: bool = False,
     etapa: list[Etapa] | None = Query(None),
+    incluir_inativos: bool = False,
     cursor: str | None = None,
     limit: int = Query(50, le=200),
     db: Session = Depends(get_db),
@@ -55,8 +58,12 @@ def listar_imoveis(
             Avaliacao,
             (Avaliacao.lote_id == LoteLeilao.id) & (Avaliacao.usuario_id == usuario.id),
         )
-        .filter(LoteLeilao.ativo.is_(True))
     )
+    if not incluir_inativos:
+        # lote inativo = saiu da planilha de origem (leilão finalizado/descontinuado) — some
+        # da Triagem por padrão, mas continua acessível com `incluir_inativos=true`
+        # (ver docs/requisitos/mvp1-ajustes/04-importacao-caixa-e-historico.md).
+        query = query.filter(LoteLeilao.ativo.is_(True))
     if uf:
         query = query.filter(Imovel.uf == uf)
     if cidade:
@@ -132,6 +139,7 @@ def listar_imoveis(
             etapa=avaliacao.etapa,
             motivo_descarte=avaliacao.motivo_descarte,
             resumo_campos=resumos[avaliacao.id],
+            ativo=lote.ativo,
         )
         for lote, imovel, avaliacao in linhas
     ]
@@ -153,6 +161,21 @@ def facetas(
     ]
     tipos = [row[0] for row in db.query(Imovel.tipo).distinct().all()]
     return FacetasResponse(cidades=cidades, tipos=tipos)
+
+
+@router.get("/imoveis/{lote_id}/eventos", response_model=list[EventoDTO])
+def eventos_do_lote(
+    lote_id: UUID,
+    db: Session = Depends(get_db),
+    _usuario: Usuario = Depends(get_current_usuario),
+) -> list[EventoDTO]:
+    # dado global (criado/atualizado/inativado/reativado pela importação) — qualquer
+    # usuário autenticado pode ver, sem checagem de posse (ver item 04 dos ajustes de MVP1).
+    linhas = db.query(EventoLote).filter_by(lote_id=lote_id).order_by(EventoLote.criado_em.desc()).all()
+    return [
+        EventoDTO(id=e.id, tipo=e.tipo, ator_id=e.ator_id, payload=e.payload, criado_em=e.criado_em)
+        for e in linhas
+    ]
 
 
 @router.get("/imoveis/{lote_id}", response_model=FichaResponse)
@@ -214,6 +237,7 @@ def ficha(
             praca_2_valor=lote.praca_2_valor,
             praca_2_data=lote.praca_2_data,
             url_fonte=lote.url_fonte,
+            ativo=lote.ativo,
         ),
         avaliacao=AvaliacaoDTO(
             id=avaliacao.id,

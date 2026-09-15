@@ -41,6 +41,14 @@ export function NavBar() {
           >
             Funil de aprovação
           </NavLink>
+          <NavLink
+            to="/importacoes"
+            className={({ isActive }) =>
+              `${linkBase} ${isActive ? "bg-ink2 text-onDark" : "text-onDark4 hover:bg-ink2/50"}`
+            }
+          >
+            Importações
+          </NavLink>
         </nav>
       </div>
       <div className="flex items-center gap-[18px]">

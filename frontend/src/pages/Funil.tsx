@@ -62,6 +62,11 @@ function FunilCardView({ card, cor }: { card: FunilCardType; cor: string }) {
     >
       <div className="text-[13px] leading-[1.35]">{card.endereco}</div>
       <div className="mt-1 font-mono text-[10.5px] text-label">{card.cidade}</div>
+      {!card.ativo && (
+        <div className="mt-1 truncate rounded-sm border border-amberBorder bg-amberBg px-[6px] py-[2px] font-mono text-[10px] text-amber">
+          Leilão finalizado/descontinuado
+        </div>
+      )}
       <div className="mt-1 flex items-center justify-between">
         <span className="font-mono text-[12px] font-semibold">R$ {Number(card.preco_venda).toLocaleString("pt-BR")}</span>
         {card.desconto_pct && (

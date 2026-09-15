@@ -34,6 +34,7 @@ function filtrosDeParams(params: URLSearchParams): ImoveisFiltros {
     desconto_min: params.get("desconto_min") ? Number(params.get("desconto_min")) : undefined,
     sem_dados_campo: params.get("sem_dados_campo") === "true" ? true : undefined,
     ocultar_descartados: params.get("ocultar_descartados") === "true" ? true : undefined,
+    incluir_inativos: params.get("incluir_inativos") === "true" ? true : undefined,
   };
 }
 
@@ -50,6 +51,7 @@ function paramsDeFiltros(filtros: ImoveisFiltros): URLSearchParams {
   if (filtros.desconto_min) params.set("desconto_min", String(filtros.desconto_min));
   if (filtros.sem_dados_campo) params.set("sem_dados_campo", "true");
   if (filtros.ocultar_descartados) params.set("ocultar_descartados", "true");
+  if (filtros.incluir_inativos) params.set("incluir_inativos", "true");
   return params;
 }
 
@@ -66,6 +68,7 @@ function descricaoFiltros(filtros: ImoveisFiltros): string {
     partes.push(filtros.fgts === "aceita" ? "aceita FGTS" : "não aceita FGTS");
   if (filtros.sem_dados_campo) partes.push("sem dados de campo");
   if (filtros.ocultar_descartados) partes.push("ocultando descartados");
+  if (filtros.incluir_inativos) partes.push("incluindo leilões finalizados/descontinuados");
   return partes.length ? `Filtrando por ${partes.join(" · ")}` : "Sem filtros: mostrando toda a base";
 }
 
@@ -213,6 +216,11 @@ export function Triagem() {
               {item.etapa === "descartado" && (
                 <div className="mt-[3px] truncate font-mono text-[10.5px] text-red">
                   Descartado{item.motivo_descarte ? `: ${item.motivo_descarte}` : ""}
+                </div>
+              )}
+              {!item.ativo && (
+                <div className="mt-[3px] truncate font-mono text-[10.5px] text-amber">
+                  Leilão finalizado/descontinuado
                 </div>
               )}
             </div>

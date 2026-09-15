@@ -18,6 +18,9 @@ export interface ImoveisFiltros {
   /** Filtro só de tela da Triagem, não é enviado ao backend — controla se etapa=descartado
    * entra na lista de etapas buscadas (ver Triagem.tsx). */
   ocultar_descartados?: boolean;
+  /** Enviado ao backend — por padrão a Triagem esconde lotes inativos (leilão finalizado/
+   * descontinuado); este filtro reexibe. */
+  incluir_inativos?: boolean;
   etapa?: string[];
   cursor?: string;
   limit?: number;

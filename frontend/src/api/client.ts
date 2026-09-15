@@ -34,6 +34,20 @@ export const apiPatch = <T>(path: string, body: unknown): Promise<T> =>
 export const apiPost = <T>(path: string, body?: unknown): Promise<T> =>
   request<T>(path, { method: "POST", body: body !== undefined ? JSON.stringify(body) : undefined });
 
+export async function apiUpload<T>(path: string, arquivo: File): Promise<T> {
+  const form = new FormData();
+  form.append("arquivo", arquivo);
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${TOKEN}` },
+    body: form,
+  });
+  if (!res.ok) {
+    throw new ApiError(res.status, await res.text());
+  }
+  return (await res.json()) as T;
+}
+
 export type QueryValue = string | number | boolean | string[] | undefined | null;
 
 export function buildQuery(params: Record<string, QueryValue>): string {
