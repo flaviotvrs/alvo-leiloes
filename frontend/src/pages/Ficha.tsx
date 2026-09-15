@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { useAceitarSugestao } from "../api/hooks/useAceitarSugestao";
 import { useDescartar } from "../api/hooks/useDescartar";
@@ -235,6 +235,8 @@ function corSubtotalGrupo(grupo: GrupoResultado): string {
 export function Ficha() {
   const { loteId } = useParams<{ loteId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const voltarPara = (location.state as { voltarPara?: string } | null)?.voltarPara ?? "/triagem";
   const { data: ficha, isLoading } = useFicha(loteId);
   const { data: eventosAvaliacao } = useEventos(ficha?.avaliacao.id);
   const { data: eventosLote } = useEventosLote(loteId);
@@ -274,7 +276,7 @@ export function Ficha() {
   function descartarAvaliacao() {
     const motivo = window.prompt("Motivo do descarte:");
     if (!motivo) return;
-    descartar.mutate({ avaliacaoId: avaliacao.id, motivo }, { onSuccess: () => navigate("/triagem") });
+    descartar.mutate({ avaliacaoId: avaliacao.id, motivo }, { onSuccess: () => navigate(voltarPara) });
   }
 
   const corMargem =
@@ -289,7 +291,7 @@ export function Ficha() {
   return (
     <div className="p-[22px_28px_60px]">
       <div className="mb-4 font-mono text-[11px]">
-        <Link to="/triagem" className="font-serif text-green">
+        <Link to={voltarPara} className="font-serif text-green">
           ← Triagem
         </Link>{" "}
         <span className="text-labelSoft">/</span> IMÓVEL {lote.codigo_externo}

@@ -1,4 +1,4 @@
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
 import { useFacetas } from "../api/hooks/useFacetas";
 import type { ImoveisFiltros } from "../api/hooks/useImoveis";
@@ -96,6 +96,7 @@ function corDesconto(desconto: string | null): string {
 export function Triagem() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const filtros = filtrosDeParams(searchParams);
   const kpis = useTriagemKpis();
@@ -119,11 +120,15 @@ export function Triagem() {
     queryClient.invalidateQueries({ queryKey: ["funil"] });
   }
 
-  async function selecionarEAbrir(item: ImovelListItem) {
+  function abrirFicha(item: ImovelListItem) {
+    navigate(`/imoveis/${item.lote_id}`, { state: { voltarPara: `/triagem${location.search}` } });
+  }
+
+  async function selecionarParaFunil(item: ImovelListItem, e: React.MouseEvent) {
+    e.stopPropagation();
     await apiPost(`/avaliacoes/${item.avaliacao_id}/etapa`, { etapa: "nao_avaliado" });
     queryClient.invalidateQueries({ queryKey: ["imoveis"] });
     queryClient.invalidateQueries({ queryKey: ["funil"] });
-    navigate(`/imoveis/${item.lote_id}`);
   }
 
   const kpiItens = [
@@ -171,7 +176,7 @@ export function Triagem() {
       </div>
 
       <div className="overflow-hidden rounded-md border border-border bg-surface">
-        <div className="grid grid-cols-[2.4fr_0.75fr_1fr_1fr_0.7fr_1.15fr_1.35fr_0.95fr] gap-[14px] bg-surface2 px-[18px] py-2 font-mono text-[9.5px] uppercase tracking-[0.13em] text-label">
+        <div className="grid grid-cols-[2.0fr_0.7fr_0.9fr_0.9fr_0.65fr_1.05fr_1.25fr_1.65fr] gap-[14px] bg-surface2 px-[18px] py-2 font-mono text-[9.5px] uppercase tracking-[0.13em] text-label">
           <div>Imóvel</div>
           <div>Tipo</div>
           <div className="text-right">Preço</div>
@@ -203,8 +208,8 @@ export function Triagem() {
         {data?.items.map((item) => (
           <div
             key={item.lote_id}
-            onClick={() => selecionarEAbrir(item)}
-            className="grid cursor-pointer grid-cols-[2.4fr_0.75fr_1fr_1fr_0.7fr_1.15fr_1.35fr_0.95fr] items-center gap-[14px] border-t border-divider px-[18px] py-[13px] hover:bg-surface3"
+            onClick={() => abrirFicha(item)}
+            className="grid cursor-pointer grid-cols-[2.0fr_0.7fr_0.9fr_0.9fr_0.65fr_1.05fr_1.25fr_1.65fr] items-center gap-[14px] border-t border-divider px-[18px] py-[13px] hover:bg-surface3"
           >
             <div className="min-w-0">
               <div className="truncate text-[14px]">{item.endereco}</div>
@@ -255,14 +260,11 @@ export function Triagem() {
               </div>
               <div className="truncate text-[11px] text-label">{notaDadosDeCampo(item)}</div>
             </div>
-            <div className="flex justify-end gap-[6px]">
+            <div className="flex flex-wrap justify-end gap-[6px]">
               {item.etapa === "descartado" ? (
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    selecionarEAbrir(item);
-                  }}
+                  onClick={(e) => selecionarParaFunil(item, e)}
                   className="rounded-sm border border-amberBorder bg-amberBg px-2 py-1 text-[11.5px] text-amber"
                 >
                   Reconsiderar
@@ -271,11 +273,18 @@ export function Triagem() {
                 <>
                   <button
                     type="button"
+                    onClick={(e) => selecionarParaFunil(item, e)}
+                    className="rounded-sm border border-greenBorder bg-greenBg px-2 py-1 text-[11.5px] text-green"
+                  >
+                    Selecionar p/ funil
+                  </button>
+                  <button
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      selecionarEAbrir(item);
+                      abrirFicha(item);
                     }}
-                    className="rounded-sm border border-greenBorder bg-greenBg px-2 py-1 text-[11.5px] text-green"
+                    className="rounded-sm border border-border2 px-2 py-1 text-[11.5px] text-ink3"
                   >
                     Preencher
                   </button>
