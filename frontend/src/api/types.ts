@@ -118,6 +118,7 @@ export interface AvaliacaoDTO {
   etapa_desde: string;
   motivo_descarte: string | null;
   teto_lance: string | null;
+  margem_desejada_pct: string | null;
   anotacoes: string;
   checklist: Checklist;
 }
@@ -164,6 +165,7 @@ export interface FichaResponse {
   avaliacao: AvaliacaoDTO;
   campos: Record<string, CampoDTO>;
   resultado_calculo: Resultado;
+  lance_maximo_sugerido: string | null;
 }
 
 export interface EventoDTO {
@@ -197,6 +199,15 @@ export interface FunilResponse {
   colunas: FunilColuna[];
   base_para_aprovados_pct: string;
   tempo_medio_pesquisa_dias: string | null;
+}
+
+export interface ParametroDTO {
+  prazo_carregamento_meses: number;
+  comissao_corretor_pct: string;
+  piso_margem_pct: string;
+  ir_aliquota_pct: string;
+  itbi_aliquota_padrao_pct: string;
+  comissao_leiloeiro_padrao_pct: string;
 }
 
 export interface ImportacaoDTO {

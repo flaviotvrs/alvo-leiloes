@@ -100,6 +100,7 @@ class AvaliacaoDTO(BaseModel):
     etapa_desde: datetime
     motivo_descarte: str | None
     teto_lance: Decimal | None
+    margem_desejada_pct: Decimal | None
     anotacoes: str
     checklist: dict[str, bool]
 
@@ -110,6 +111,7 @@ class FichaResponse(BaseModel):
     avaliacao: AvaliacaoDTO
     campos: dict[str, CampoDTO]
     resultado_calculo: Resultado
+    lance_maximo_sugerido: Decimal | None
 
 
 class PatchCampoRequest(BaseModel):
@@ -121,6 +123,7 @@ class PatchAvaliacaoRequest(BaseModel):
     anotacoes: str | None = None
     checklist: dict[str, bool] | None = None
     teto_lance: Decimal | None = None
+    margem_desejada_pct: Decimal | None = None
 
 
 class EtapaRequest(BaseModel):
