@@ -124,6 +124,62 @@ alvo-leiloes/
         └── design-tokens/    # tokens transcritos de docs/README.md
 ```
 
+## Deploy
+
+Infra de baixo custo para uma ferramenta interna de baixo tráfego:
+
+| Peça | Onde |
+|---|---|
+| Banco | [Neon](https://neon.tech) (Postgres serverless, free tier) |
+| Backend | [Render](https://render.com) (Web Service Docker, free tier) |
+| Frontend | [Cloudflare Pages](https://pages.cloudflare.com) (build estático do Vite, free) |
+
+### Backend (Render)
+
+1. No Neon, crie o projeto/branch e copie a **connection string com pooling** (host
+   termina em `-pooler`), com `sslmode=require`.
+2. No Render, "New +" → "Blueprint" apontando para este repo — ele lê o `render.yaml` da
+   raiz e cria o serviço `alvo-leiloes-backend` (Docker, build a partir de `backend/`).
+3. Preencha as env vars pedidas pelo blueprint (não têm valor padrão, por serem
+   sensíveis/específicas do ambiente):
+   - `DATABASE_URL` — a connection string pooled do Neon, no formato
+     `postgresql+psycopg://usuario:senha@ep-xxx-pooler.regiao.neon.tech/alvo_leiloes?sslmode=require`
+   - `API_BEARER_TOKEN` — um token novo, diferente do de dev
+   - `ALLOWED_ORIGINS` — a URL do frontend em produção (ex.:
+     `https://alvo-leiloes.pages.dev`); pode ter mais de uma, separadas por vírgula
+4. O `preDeployCommand` do blueprint roda `alembic upgrade head` antes de cada deploy —
+   não precisa aplicar migrations manualmente. Se o Render ignorar esse campo (varia por
+   plano/versão), rode uma vez manualmente pelo Shell do serviço no dashboard.
+5. Depois do primeiro deploy, rode o seed (opcional, só para demonstração) pelo Shell do
+   serviço: `python -m app.seeds.seed`.
+
+O plano free do Render hiberna o serviço após ~15min sem tráfego — a primeira requisição
+depois disso demora ~30-50s (cold start). Para uma ferramenta interna de uso esporádico
+costuma ser aceitável; se incomodar, o caminho de migração é para o Google Cloud Run
+(free tier também, cold start bem mais rápido, mas exige conta GCP com billing).
+
+### Frontend (Cloudflare Pages)
+
+1. Cloudflare Pages → "Create a project" → conectar este repo.
+2. Build settings:
+   - Root directory: `frontend`
+   - Build command: `npm run build`
+   - Output directory: `dist`
+3. Env vars do build (Settings → Environment variables):
+   - `VITE_API_BASE_URL` — URL do backend no Render + `/api/v1` (ex.:
+     `https://alvo-leiloes-backend.onrender.com/api/v1`)
+   - `VITE_API_BEARER_TOKEN` — o mesmo valor de `API_BEARER_TOKEN` configurado no backend
+
+Esses valores ficam embutidos no bundle JS gerado (Vite inlina env vars `VITE_*` em
+build-time) — não são segredos protegidos no cliente, só evitam hardcode no código-fonte.
+
+### Observação sobre autenticação
+
+`API_BEARER_TOKEN` é único e estático (ver nota em `get_current_usuario`,
+`backend/app/api/deps.py`) — suficiente para o MVP1 de single-user atrás de um link não
+divulgado, mas visível a quem abrir o DevTools do frontend. Não é proteção real contra
+acesso não autorizado; reavaliar se a ferramenta ganhar mais usuários ou dados sensíveis.
+
 ## Estado atual
 
 **Implementado:** modelo de dados completo, motor de cálculo, importador da planilha Caixa,
