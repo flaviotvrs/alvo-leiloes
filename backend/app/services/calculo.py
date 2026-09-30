@@ -158,7 +158,7 @@ def calcular(snapshot: Snapshot) -> Resultado:
             fonte=(
                 f"estimativa acima do teto conhecido · {snapshot.tabelas.versao_emolumentos}"
                 if registro_estimativa
-                else f"{snapshot.tabelas.versao_emolumentos} · faixa até R$ {_fmt_moeda(registro)}"
+                else f"{snapshot.tabelas.versao_emolumentos} · faixa conforme o valor do arremate"
             ),
         ),
     ]
@@ -276,8 +276,8 @@ def calcular(snapshot: Snapshot) -> Resultado:
             valor=-ir if revenda is not None else None,
             assumido=False,
             fonte=(
-                f"{_fmt_pct(snapshot.parametros.ir_aliquota_pct)}% sobre ganho de "
-                f"R$ {_fmt_moeda(ganho_capital)} (custo de aquisição + reforma como base)"
+                f"{_fmt_pct(snapshot.parametros.ir_aliquota_pct)}% sobre o ganho de capital "
+                "(revenda – custo de aquisição + reforma)"
             ),
         ),
     ]

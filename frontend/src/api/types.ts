@@ -166,6 +166,8 @@ export interface FichaResponse {
   campos: Record<string, CampoDTO>;
   resultado_calculo: Resultado;
   lance_maximo_sugerido: string | null;
+  resultado_lance_manual: Resultado | null;
+  resultado_lance_maximo: Resultado | null;
 }
 
 export interface EventoDTO {

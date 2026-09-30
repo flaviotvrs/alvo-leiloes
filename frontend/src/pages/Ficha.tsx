@@ -10,11 +10,11 @@ import { useMoverEtapa } from "../api/hooks/useMoverEtapa";
 import { useParametros } from "../api/hooks/useParametros";
 import { usePatchAvaliacao } from "../api/hooks/usePatchAvaliacao";
 import { useSalvarCampo } from "../api/hooks/useSalvarCampo";
-import type { CampoDTO, Checklist, Etapa, EventoDTO, GrupoResultado, Linha } from "../api/types";
-import { LinhaConta } from "../components/LinhaConta";
+import type { CampoDTO, Checklist, Etapa, EventoDTO } from "../api/types";
 import { MoneyValue } from "../components/MoneyValue";
 import { PercentValue } from "../components/PercentValue";
 import { ProcedenciaChip } from "../components/ProcedenciaChip";
+import { TabelaCenarios } from "../components/TabelaCenarios";
 import type { OrigemOuVazio } from "../lib/procedencia";
 import { formatArea, formatDateTime, formatMoney, formatPercent, parseDecimalBr } from "../lib/format";
 
@@ -113,14 +113,6 @@ const CAMPOS_FICHA: CampoSpec[] = [
   { chave: "reforma", rotulo: "Reforma estimada", hint: "Orçamento aproximado após a visita", tipo: "money" },
   { chave: "desocupacao", rotulo: "Custo de desocupação", hint: "Acordo amigável ou ação judicial", tipo: "money" },
 ];
-
-const ROTULO_GRUPO: Record<string, string> = {
-  aquisicao: "Aquisição",
-  dividas: "Dívidas anteriores assumidas",
-  posse: "Recuperação e posse",
-  carregamento: "Carregamento · 12 meses",
-  venda: "Venda",
-};
 
 const CHECKLIST_ITENS: { chave: keyof Checklist; rotulo: string }[] = [
   { chave: "matricula", rotulo: "Matrícula do imóvel obtida no CRI" },
@@ -225,14 +217,6 @@ function CampoLinha({
   );
 }
 
-function corSubtotalGrupo(grupo: GrupoResultado): string {
-  const valor = Number(grupo.subtotal);
-  if (grupo.grupo === "dividas") return valor > 0 ? "text-red" : "text-labelSoft";
-  if (grupo.grupo === "carregamento") return valor > 0 ? "text-amber" : "text-ink";
-  if (grupo.grupo === "venda") return "text-green";
-  return "text-ink";
-}
-
 export function Ficha() {
   const { loteId } = useParams<{ loteId: string }>();
   const navigate = useNavigate();
@@ -265,6 +249,8 @@ export function Ficha() {
     campos,
     resultado_calculo: resultado,
     lance_maximo_sugerido: lanceMaximoSugerido,
+    resultado_lance_manual: resultadoLanceManual,
+    resultado_lance_maximo: resultadoLanceMaximo,
   } = ficha;
   const totalCampos = CAMPOS_FICHA.length;
   const preenchidos = CAMPOS_FICHA.filter((c) => campos[c.chave]).length;
@@ -330,6 +316,12 @@ export function Ficha() {
       : resultado.veredito === "reprovado"
         ? `Abaixo do ${pisoTexto} — a regra é não participar.`
         : "Preencha o valor de revenda para ver a margem.";
+  const textoLanceMaximo =
+    lanceMaximoSugerido === null
+      ? "O máximo sugerido aparece quando houver valor de mercado."
+      : Number(lanceMaximoSugerido) === 0
+        ? `Nenhum lance atinge a margem desejada de ${formatPercent(margemAlvoPct)} neste imóvel, nem arrematando de graça — os custos fixos já superam o retorno esperado.`
+        : `O máximo sugerido é o maior lance que ainda atinge a margem de ${formatPercent(margemAlvoPct)}.`;
 
   return (
     <div className="p-[22px_28px_60px]">
@@ -491,98 +483,87 @@ export function Ficha() {
               </div>
             </div>
 
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-[18px] border-t border-dashed border-dividerDash p-[16px_22px]">
-              <div>
-                <div className="font-mono text-[9.5px] uppercase tracking-[0.13em] text-label">
-                  Margem desejada · este imóvel
-                </div>
-                <div className="mt-2 flex items-center gap-2">
-                  <input
-                    className="w-[90px] rounded-sm border border-border2 bg-white px-[9px] py-[7px] text-right text-[13px]"
-                    value={margemRascunho ?? avaliacao.margem_desejada_pct ?? ""}
-                    onChange={(e) => agendarMargemDesejada(e.target.value)}
-                    placeholder="0"
-                  />
-                  <span className="text-[13px] text-labelSoft">%</span>
-                </div>
-                <div className="mt-1 text-[11.5px] text-labelSoft">
-                  Em branco, usa o piso global ({parametros ? formatPercent(parametros.piso_margem_pct) : "…"}
-                  ). Preenchida, também muda o veredito acima só deste imóvel.
-                </div>
+            <div className="border-t border-dashed border-dividerDash p-[16px_22px]">
+              <div className="font-mono text-[9.5px] uppercase tracking-[0.13em] text-label">
+                Margem desejada · este imóvel
               </div>
-
-              <div>
-                <div className="font-mono text-[9.5px] uppercase tracking-[0.13em] text-label">
-                  Lance máximo sugerido
-                </div>
-                {lanceMaximoSugerido === null ? (
-                  <div className="mt-2 text-[13px] text-labelSoft">
-                    Defina o valor de mercado para calcular o lance máximo.
-                  </div>
-                ) : Number(lanceMaximoSugerido) === 0 ? (
-                  <div className="mt-2 text-[12.5px] text-red">
-                    Nenhum lance atinge a margem desejada de {formatPercent(margemAlvoPct)} neste imóvel, nem
-                    arrematando de graça — os custos fixos já superam o retorno esperado.
-                  </div>
-                ) : (
-                  <>
-                    <MoneyValue value={lanceMaximoSugerido} className="mt-1 block text-[19px] font-semibold" />
-                    <button
-                      type="button"
-                      onClick={usarLanceMaximoComoTeto}
-                      className="mt-2 rounded-sm border border-border2 px-2 py-1 text-[11.5px] text-ink3 hover:bg-surface2"
-                    >
-                      Usar este valor no teto de lance
-                    </button>
-                  </>
-                )}
+              <div className="mt-2 flex items-center gap-2">
+                <input
+                  className="w-[90px] rounded-sm border border-border2 bg-white px-[9px] py-[7px] text-right text-[13px]"
+                  value={margemRascunho ?? avaliacao.margem_desejada_pct ?? ""}
+                  onChange={(e) => agendarMargemDesejada(e.target.value)}
+                  placeholder="0"
+                />
+                <span className="text-[13px] text-labelSoft">%</span>
               </div>
-
-              <div>
-                <div className="font-mono text-[9.5px] uppercase tracking-[0.13em] text-label">
-                  Teto de lance (manual)
-                </div>
-                <div className="mt-2 flex items-center gap-2">
-                  <span className="text-[13px] text-labelSoft">R$</span>
-                  <input
-                    className="w-[130px] rounded-sm border border-border2 bg-white px-[9px] py-[7px] text-right text-[13px]"
-                    value={tetoLanceRascunho ?? avaliacao.teto_lance ?? ""}
-                    onChange={(e) => agendarTetoLance(e.target.value)}
-                    placeholder="0"
-                  />
-                </div>
-                <div className="mt-1 text-[11.5px] text-labelSoft">
-                  Confirme ou sobrescreva à mão — a sugestão acima não altera este valor sozinha.
-                </div>
+              <div className="mt-1 text-[11.5px] text-labelSoft">
+                Em branco, usa o piso global ({parametros ? formatPercent(parametros.piso_margem_pct) : "…"}
+                ). Preenchida, também muda o veredito acima só deste imóvel e o lance máximo sugerido abaixo.
               </div>
             </div>
 
-            <div className="px-[22px] pb-[18px]">
+            <div className="border-t border-dashed border-dividerDash p-[16px_22px]">
+              <TabelaCenarios
+                base={resultado}
+                aberta={contaAberta}
+                cenarios={[
+                  {
+                    titulo: "Mínimo do leiloeiro",
+                    cabecalho: <MoneyValue value={lote.preco_venda} className="text-[15px] font-semibold" />,
+                    resultado,
+                  },
+                  {
+                    titulo: "Meu lance",
+                    cabecalho: (
+                      <div className="flex flex-col items-end gap-1">
+                        <div className="flex items-center gap-1">
+                          <span className="text-[12px] text-labelSoft">R$</span>
+                          <input
+                            className="w-full min-w-0 rounded-sm border border-border2 bg-white px-[7px] py-[5px] text-right font-mono text-[13px]"
+                            value={tetoLanceRascunho ?? avaliacao.teto_lance ?? ""}
+                            onChange={(e) => agendarTetoLance(e.target.value)}
+                            placeholder="lance atual"
+                          />
+                        </div>
+                        {lanceMaximoSugerido !== null && Number(lanceMaximoSugerido) > 0 && (
+                          <button
+                            type="button"
+                            onClick={usarLanceMaximoComoTeto}
+                            className="rounded-sm border border-border2 px-[6px] py-[2px] text-[10.5px] text-ink3 hover:bg-surface2"
+                          >
+                            usar o máximo
+                          </button>
+                        )}
+                      </div>
+                    ),
+                    resultado: resultadoLanceManual,
+                  },
+                  {
+                    titulo: "Máximo sugerido",
+                    cabecalho:
+                      lanceMaximoSugerido === null ? (
+                        <span className="text-[11.5px] text-labelSoft">defina o valor de mercado</span>
+                      ) : Number(lanceMaximoSugerido) === 0 ? (
+                        <span className="text-[11.5px] text-red">nenhum lance viável</span>
+                      ) : (
+                        <MoneyValue value={lanceMaximoSugerido} className="text-[15px] font-semibold" />
+                      ),
+                    resultado: resultadoLanceMaximo,
+                  },
+                ]}
+              />
+              <div className="mt-2 text-[11.5px] text-labelSoft">
+                {textoLanceMaximo} Em “Meu lance”, digite o lance atual durante o leilão (ou o teto que pretende dar)
+                para ver a conta — a sugestão nunca altera esse valor sozinha.
+              </div>
+
               <button
                 type="button"
                 onClick={() => setContaAberta((v) => !v)}
-                className="w-full rounded-sm border border-border2 py-[9px] font-mono text-[10.5px] uppercase text-ink3 hover:bg-surface2"
+                className="mt-4 w-full rounded-sm border border-border2 py-[9px] font-mono text-[10.5px] uppercase text-ink3 hover:bg-surface2"
               >
                 {contaAberta ? "Fechar a conta detalhada ▴" : "Abrir a conta detalhada ▾"}
               </button>
-
-              {contaAberta && (
-                <div className="mt-4 flex flex-col gap-5">
-                  {resultado.grupos.map((grupo) => (
-                    <div key={grupo.grupo}>
-                      <div className="mb-1 flex items-center justify-between">
-                        <span className={`font-mono text-[9.5px] uppercase tracking-[0.13em] ${corSubtotalGrupo(grupo)}`}>
-                          {ROTULO_GRUPO[grupo.grupo]}
-                        </span>
-                        <MoneyValue value={grupo.subtotal} className={`text-[12px] font-semibold ${corSubtotalGrupo(grupo)}`} />
-                      </div>
-                      {grupo.linhas.map((linha: Linha) => (
-                        <LinhaConta key={linha.chave} linha={linha} />
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
           </div>
         </div>

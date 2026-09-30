@@ -210,6 +210,16 @@ def ficha(
     snapshot = montar_snapshot(db, avaliacao)
     resultado = calcular(snapshot)
     lance_maximo_sugerido = calcular_lance_maximo(snapshot)
+    resultado_lance_manual = (
+        calcular(snapshot.model_copy(update={"arremate": avaliacao.teto_lance}))
+        if avaliacao.teto_lance is not None
+        else None
+    )
+    resultado_lance_maximo = (
+        calcular(snapshot.model_copy(update={"arremate": lance_maximo_sugerido}))
+        if lance_maximo_sugerido
+        else None
+    )
 
     return FichaResponse(
         imovel=ImovelReadOnly(
@@ -255,4 +265,6 @@ def ficha(
         campos=campos,
         resultado_calculo=resultado,
         lance_maximo_sugerido=lance_maximo_sugerido,
+        resultado_lance_manual=resultado_lance_manual,
+        resultado_lance_maximo=resultado_lance_maximo,
     )

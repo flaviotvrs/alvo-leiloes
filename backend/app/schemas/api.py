@@ -112,6 +112,10 @@ class FichaResponse(BaseModel):
     campos: dict[str, CampoDTO]
     resultado_calculo: Resultado
     lance_maximo_sugerido: Decimal | None
+    # a mesma conta de `resultado_calculo`, só trocando o arremate: pelo teto de lance que o
+    # usuário digitou (None sem teto) e pelo lance máximo sugerido (None sem lance viável)
+    resultado_lance_manual: Resultado | None
+    resultado_lance_maximo: Resultado | None
 
 
 class PatchCampoRequest(BaseModel):
