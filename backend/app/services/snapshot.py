@@ -76,4 +76,7 @@ def montar_snapshot(db: Session, avaliacao: Avaliacao) -> Snapshot:
         parametros=parametros,
         tabelas=TabelasSnapshot(itbi=itbi_refs, emolumentos=faixas, versao_emolumentos=versao),
         dividas_sao_do_arrematante=True,
+        outros_gastos_descricao=next(
+            (c.valor_texto for c in campos_db if c.chave == "outros_gastos_descricao" and c.valor_texto), None
+        ),
     )

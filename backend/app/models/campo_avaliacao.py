@@ -9,7 +9,7 @@ from app.models.enums import OrigemCampo
 from app.models.mixins import UUIDPk
 from app.models.types import str_enum
 
-# Catálogo das onze chaves da Ficha (README.md "Bloco B"), para referência — não é um
+# Catálogo das chaves da Ficha (README.md "Bloco B"), para referência — não é um
 # CHECK constraint no banco porque o catálogo pode crescer sem migration (BACKEND.md
 # já prevê campos de edital fora do MVP1: responsabilidade por dívida, foro/laudêmio, etc).
 CHAVES_CAMPO_MVP1 = (
@@ -24,6 +24,11 @@ CHAVES_CAMPO_MVP1 = (
     "ocupacao",
     "reforma",
     "desocupacao",
+    "outros_gastos",
+    "outros_gastos_descricao",
+    # ajustes de cenário por imóvel — em branco, valem os parâmetros do usuário
+    "comissao_corretor_pct",
+    "prazo_carregamento_meses",
 )
 
 

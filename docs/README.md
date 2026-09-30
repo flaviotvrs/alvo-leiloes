@@ -480,7 +480,8 @@ check           { matricula, visita, iptu, condominio, edital, comparaveis } : b
 
 Parâmetros do cenário, hoje expostos como ajustes do protótipo e que no app devem ser
 configuração do usuário (com padrão global): **prazo de carregamento** (3–36 meses, padrão 12)
-e **comissão do corretor** (0–8%, passo 0,5, padrão 6%). Há também um modo denso da tabela
+e **comissão do corretor** (0–8%, passo 0,5, padrão 5%). Os dois também podem ser
+ajustados por imóvel, na Ficha, para simular outro cenário (em branco, vale o padrão). Há também um modo denso da tabela
 (padding de linha 13px → 8px).
 
 ## Regras de negócio que a interface reflete
@@ -506,13 +507,13 @@ implementação de referência. Resumo:
 comissao_leiloeiro = arremate × pct_leiloeiro          (padrão 5%, palpite até vir do edital)
 itbi               = arremate × aliquota_municipio     (padrão 3%, palpite se não cadastrada)
 registro           = faixa(arremate) na Tabela 4-2026 TJMG, item 5-e
-aquisicao          = arremate + comissao_leiloeiro + itbi + registro
+aquisicao          = arremate + comissao_leiloeiro + itbi + registro + outros_gastos
 dividas            = iptu_atraso + condominio_atraso          (se do arrematante)
 posse              = reforma + desocupacao
-carregamento       = (iptu_mensal + condominio_mensal) × prazo_meses
+carregamento       = (iptu_mensal + condominio_mensal) × prazo_meses   (padrão 12, ajustável por imóvel)
 investimento       = aquisicao + dividas + posse + carregamento
-comissao_corretor  = revenda × pct_corretor            (padrão 6%)
-base_ir            = aquisicao + reforma
+comissao_corretor  = revenda × pct_corretor            (padrão 5%, ajustável por imóvel)
+base_ir            = aquisicao − outros_gastos + reforma
 ganho              = max(0, revenda − comissao_corretor − base_ir)
 ir                 = ganho × 0,15
 lucro              = revenda − comissao_corretor − ir − investimento

@@ -45,6 +45,8 @@ interface CampoSpec {
   tipo: TipoControle;
   opcoes?: { valor: string; rotulo: string }[];
   comSugestao?: boolean;
+  /** Chave de um campo de texto curto, ao lado do valor, para explicar o que ele inclui. */
+  descricaoChave?: string;
 }
 
 const CAMPOS_FICHA: CampoSpec[] = [
@@ -114,6 +116,17 @@ const CAMPOS_FICHA: CampoSpec[] = [
   { chave: "desocupacao", rotulo: "Custo de desocupação", hint: "Acordo amigável ou ação judicial", tipo: "money" },
 ];
 
+// Opcionais: em branco é o normal, então não entram na contagem de "campos preenchidos".
+const CAMPOS_OPCIONAIS: CampoSpec[] = [
+  {
+    chave: "outros_gastos",
+    rotulo: "Outros gastos",
+    hint: "Somados à aquisição — ex.: caminhão de mudança para o morador, outras negociações",
+    tipo: "money",
+    descricaoChave: "outros_gastos_descricao",
+  },
+];
+
 const CHECKLIST_ITENS: { chave: keyof Checklist; rotulo: string }[] = [
   { chave: "matricula", rotulo: "Matrícula do imóvel obtida no CRI" },
   { chave: "visita", rotulo: "Visita ou foto recente do imóvel" },
@@ -130,11 +143,13 @@ function origemDoCampo(campo: CampoDTO | undefined): OrigemOuVazio {
 function CampoLinha({
   spec,
   campo,
+  campoDescricao,
   loteId,
   avaliacaoId,
 }: {
   spec: CampoSpec;
   campo: CampoDTO | undefined;
+  campoDescricao?: CampoDTO;
   loteId: string;
   avaliacaoId: string;
 }) {
@@ -142,12 +157,22 @@ function CampoLinha({
   const aceitarSugestao = useAceitarSugestao(loteId);
   const [rascunho, setRascunho] = useState(campo?.valor ?? "");
   const timer = useRef<number | undefined>(undefined);
+  const [descricao, setDescricao] = useState(campoDescricao?.valor ?? "");
+  const descricaoTimer = useRef<number | undefined>(undefined);
 
   function agendar(valor: string) {
     setRascunho(valor);
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => {
       salvar.mutate({ avaliacaoId, chave: spec.chave, valor: valor.trim() === "" ? null : valor });
+    }, 500);
+  }
+
+  function agendarDescricao(valor: string) {
+    setDescricao(valor);
+    window.clearTimeout(descricaoTimer.current);
+    descricaoTimer.current = window.setTimeout(() => {
+      salvar.mutate({ avaliacaoId, chave: spec.descricaoChave!, valor: valor.trim() === "" ? null : valor });
     }, 500);
   }
 
@@ -195,6 +220,14 @@ function CampoLinha({
               placeholder="0"
             />
             {spec.tipo === "percent" && <span className="text-[13px] text-labelSoft">%</span>}
+            {spec.descricaoChave && (
+              <input
+                className="min-w-0 max-w-[320px] flex-1 rounded-sm border border-border2 bg-white px-[9px] py-[7px] text-[13px]"
+                value={descricao}
+                onChange={(e) => agendarDescricao(e.target.value)}
+                placeholder="o que está incluído neste valor"
+              />
+            )}
           </div>
         )}
 
@@ -213,6 +246,54 @@ function CampoLinha({
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+/** Premissa da conta que pode ser ajustada só neste imóvel, para simular outro cenário. Em
+ * branco, vale o parâmetro do usuário (mostrado como placeholder). */
+function AjusteCenario({
+  chave,
+  rotulo,
+  sufixo,
+  padrao,
+  campo,
+  loteId,
+  avaliacaoId,
+}: {
+  chave: string;
+  rotulo: string;
+  sufixo: string;
+  padrao: string;
+  campo: CampoDTO | undefined;
+  loteId: string;
+  avaliacaoId: string;
+}) {
+  const salvar = useSalvarCampo(loteId);
+  const [rascunho, setRascunho] = useState(campo?.valor ?? "");
+  const timer = useRef<number | undefined>(undefined);
+
+  function agendar(valor: string) {
+    setRascunho(valor);
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => {
+      salvar.mutate({ avaliacaoId, chave, valor: valor.trim() === "" ? null : valor });
+    }, 500);
+  }
+
+  return (
+    <div>
+      <div className="font-mono text-[9.5px] uppercase tracking-[0.13em] text-label">{rotulo}</div>
+      <div className="mt-2 flex items-center gap-2">
+        <input
+          className="w-[90px] rounded-sm border border-border2 bg-white px-[9px] py-[7px] text-right text-[13px]"
+          value={rascunho}
+          onChange={(e) => agendar(e.target.value)}
+          placeholder={padrao}
+        />
+        <span className="text-[13px] text-labelSoft">{sufixo}</span>
+      </div>
+      <div className="mt-1 text-[11.5px] text-labelSoft">Em branco, usa o padrão ({padrao} {sufixo}).</div>
     </div>
   );
 }
@@ -420,6 +501,16 @@ export function Ficha() {
                   avaliacaoId={avaliacao.id}
                 />
               ))}
+              {CAMPOS_OPCIONAIS.map((spec) => (
+                <CampoLinha
+                  key={spec.chave}
+                  spec={spec}
+                  campo={campos[spec.chave]}
+                  campoDescricao={spec.descricaoChave ? campos[spec.descricaoChave] : undefined}
+                  loteId={loteId!}
+                  avaliacaoId={avaliacao.id}
+                />
+              ))}
               <div className="py-[14px]">
                 <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-label">
                   Anotações da visita
@@ -438,7 +529,9 @@ export function Ficha() {
           <div className="overflow-hidden rounded-md border border-border bg-surface">
             <div className="flex items-center justify-between bg-surface2 px-5 py-[10px]">
               <span className="font-mono text-[9.5px] uppercase tracking-[0.13em] text-label">Conta do negócio</span>
-              <span className="text-[12px] text-labelSoft">cenário à vista · revenda em 12 meses</span>
+              <span className="text-[12px] text-labelSoft">
+                cenário à vista · revenda em {resultado.prazo_carregamento_meses} meses
+              </span>
             </div>
             <div className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-[26px] p-[18px_22px]">
               <div>
@@ -485,23 +578,47 @@ export function Ficha() {
               </div>
             </div>
 
-            <div className="border-t border-dashed border-dividerDash p-[16px_22px]">
-              <div className="font-mono text-[9.5px] uppercase tracking-[0.13em] text-label">
-                Margem desejada · este imóvel
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-[22px] border-t border-dashed border-dividerDash p-[16px_22px]">
+              <div>
+                <div className="font-mono text-[9.5px] uppercase tracking-[0.13em] text-label">
+                  Margem desejada · este imóvel
+                </div>
+                <div className="mt-2 flex items-center gap-2">
+                  <input
+                    className="w-[90px] rounded-sm border border-border2 bg-white px-[9px] py-[7px] text-right text-[13px]"
+                    value={margemRascunho ?? avaliacao.margem_desejada_pct ?? ""}
+                    onChange={(e) => agendarMargemDesejada(e.target.value)}
+                    placeholder="0"
+                  />
+                  <span className="text-[13px] text-labelSoft">%</span>
+                </div>
+                <div className="mt-1 text-[11.5px] text-labelSoft">
+                  Em branco, usa o piso global ({parametros ? formatPercent(parametros.piso_margem_pct) : "…"}
+                  ). Preenchida, também muda o veredito acima só deste imóvel e o lance máximo sugerido abaixo.
+                </div>
               </div>
-              <div className="mt-2 flex items-center gap-2">
-                <input
-                  className="w-[90px] rounded-sm border border-border2 bg-white px-[9px] py-[7px] text-right text-[13px]"
-                  value={margemRascunho ?? avaliacao.margem_desejada_pct ?? ""}
-                  onChange={(e) => agendarMargemDesejada(e.target.value)}
-                  placeholder="0"
-                />
-                <span className="text-[13px] text-labelSoft">%</span>
-              </div>
-              <div className="mt-1 text-[11.5px] text-labelSoft">
-                Em branco, usa o piso global ({parametros ? formatPercent(parametros.piso_margem_pct) : "…"}
-                ). Preenchida, também muda o veredito acima só deste imóvel e o lance máximo sugerido abaixo.
-              </div>
+              {parametros && (
+                <>
+                  <AjusteCenario
+                    chave="comissao_corretor_pct"
+                    rotulo="Comissão do corretor"
+                    sufixo="%"
+                    padrao={formatPercent(parametros.comissao_corretor_pct).replace("%", "")}
+                    campo={campos.comissao_corretor_pct}
+                    loteId={loteId!}
+                    avaliacaoId={avaliacao.id}
+                  />
+                  <AjusteCenario
+                    chave="prazo_carregamento_meses"
+                    rotulo="Carregamento até a revenda"
+                    sufixo="meses"
+                    padrao={String(parametros.prazo_carregamento_meses)}
+                    campo={campos.prazo_carregamento_meses}
+                    loteId={loteId!}
+                    avaliacaoId={avaliacao.id}
+                  />
+                </>
+              )}
             </div>
 
             <div className="border-t border-dashed border-dividerDash p-[16px_22px]">
