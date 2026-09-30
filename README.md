@@ -132,7 +132,7 @@ Infra de baixo custo para uma ferramenta interna de baixo tráfego:
 |---|---|
 | Banco | [Neon](https://neon.tech) (Postgres serverless, free tier) |
 | Backend | [Render](https://render.com) (Web Service Docker, free tier) |
-| Frontend | [Cloudflare Pages](https://pages.cloudflare.com) (build estático do Vite, free) |
+| Frontend | [Cloudflare Workers](https://developers.cloudflare.com/workers/) (assets estáticos do build do Vite, free) |
 
 ### Backend (Render)
 
@@ -166,14 +166,21 @@ ferramenta interna de uso esporádico costuma ser aceitável; se incomodar, o ca
 migração é para o Google Cloud Run (free tier também, cold start bem mais rápido, mas
 exige conta GCP com billing).
 
-### Frontend (Cloudflare Pages)
+### Frontend (Cloudflare Workers — Git integration)
 
-1. Cloudflare Pages → "Create a project" → conectar este repo.
-2. Build settings:
-   - Root directory: `frontend`
-   - Build command: `npm run build`
-   - Output directory: `dist`
-3. Env vars do build (Settings → Environment variables):
+O fluxo atual do Cloudflare para projetos novos ("Workers & Pages" → conectar repo Git) não
+é mais o dashboard clássico do Pages — ele builda e publica via Wrangler, lendo
+`frontend/wrangler.jsonc` (já no repo, configurado como Worker "assets-only": serve os
+arquivos estáticos do `dist/`, com fallback de SPA para `index.html` — necessário porque o
+app usa rotas client-side como `/imoveis/:loteId`, senão um refresh nelas dá 404).
+
+1. Cloudflare → "Workers & Pages" → "Create" → conectar este repo.
+2. Root directory: `frontend`
+3. Comandos de build (os 3 campos do formulário):
+   - **Build command:** `npm run build`
+   - **Deploy command:** `npx wrangler deploy`
+   - **Non-production branch deploy command** (preview, ex. em PRs): `npx wrangler versions upload`
+4. Env vars do build (Settings → Variables):
    - `VITE_API_BASE_URL` — URL do backend no Render + `/api/v1` (ex.:
      `https://alvo-leiloes-backend.onrender.com/api/v1`)
    - `VITE_API_BEARER_TOKEN` — o mesmo valor de `API_BEARER_TOKEN` configurado no backend
