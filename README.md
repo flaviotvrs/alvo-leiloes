@@ -148,23 +148,17 @@ Infra de baixo custo para uma ferramenta interna de baixo tráfego:
    - `API_BEARER_TOKEN` — um token novo, diferente do de dev
    - `ALLOWED_ORIGINS` — a URL do frontend em produção (ex.:
      `https://alvo-leiloes.pages.dev`); pode ter mais de uma, separadas por vírgula
-4. Migrations não dependem de nenhum recurso pago do Render (o plano free não tem
-   release phase nem Shell): o próprio `CMD` do `Dockerfile` roda `alembic upgrade head`
-   antes de iniciar o `uvicorn`, a cada boot do container — deploy novo ou wake-up depois
-   do cold start. É idempotente (não faz nada se já estiver em dia) e, se uma migration
-   falhar, o container não chega a servir tráfego com schema desatualizado.
-5. **Bootstrap (uma vez, antes do primeiro uso):** todo endpoint autenticado depende de
-   existir um `Usuario` na base (`get_current_usuario` em `backend/app/api/deps.py`) — sem
-   isso, toda chamada dá 500. Como o plano free não tem Shell no serviço do Render, rode
-   isso da sua máquina, apontando `DATABASE_URL` para o Neon de produção:
-   ```bash
-   cd backend
-   DATABASE_URL="<connection string do Neon>" uv run python -m app.seeds.bootstrap
-   ```
-   Isso cria o usuário único do MVP1, carrega as referências reais (ITBI, emolumentos) e os
-   parâmetros padrão — nada fictício. É idempotente, pode rodar de novo sem duplicar nada.
-   Depois disso, os imóveis entram pela importação real da planilha da Caixa
-   (`POST /api/v1/importacoes`, pela própria interface).
+4. Migrations e bootstrap não dependem de nenhum recurso pago do Render (o plano free não
+   tem release phase nem Shell): o próprio `CMD` do `Dockerfile` roda, em sequência,
+   `alembic upgrade head` e `python -m app.seeds.bootstrap` antes de iniciar o `uvicorn` —
+   a cada boot do container (deploy novo ou wake-up depois do cold start). Ambos são
+   idempotentes (não fazem nada se já estiver em dia) e, se algum falhar, o container não
+   chega a servir tráfego com schema desatualizado ou sem o usuário único do MVP1.
+   Nenhum passo manual necessário — nem no primeiro deploy.
+
+Depois do primeiro deploy, os imóveis entram pela importação real da planilha da Caixa
+(`POST /api/v1/importacoes`, pela própria interface) — o bootstrap cuida só do usuário e
+das referências reais (ITBI, emolumentos), nada fictício.
 
 O plano free do Render hiberna o serviço após ~15min sem tráfego — a primeira requisição
 depois disso demora ~30-50s (cold start, que agora inclui a checagem do alembic). Para uma
