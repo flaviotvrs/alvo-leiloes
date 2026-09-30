@@ -147,16 +147,21 @@ Infra de baixo custo para uma ferramenta interna de baixo tráfego:
    - `API_BEARER_TOKEN` — um token novo, diferente do de dev
    - `ALLOWED_ORIGINS` — a URL do frontend em produção (ex.:
      `https://alvo-leiloes.pages.dev`); pode ter mais de uma, separadas por vírgula
-4. O `preDeployCommand` do blueprint roda `alembic upgrade head` antes de cada deploy —
-   não precisa aplicar migrations manualmente. Se o Render ignorar esse campo (varia por
-   plano/versão), rode uma vez manualmente pelo Shell do serviço no dashboard.
-5. Depois do primeiro deploy, rode o seed (opcional, só para demonstração) pelo Shell do
-   serviço: `python -m app.seeds.seed`.
+4. Migrations não dependem de nenhum recurso pago do Render (o plano free não tem
+   release phase nem Shell): o próprio `CMD` do `Dockerfile` roda `alembic upgrade head`
+   antes de iniciar o `uvicorn`, a cada boot do container — deploy novo ou wake-up depois
+   do cold start. É idempotente (não faz nada se já estiver em dia) e, se uma migration
+   falhar, o container não chega a servir tráfego com schema desatualizado.
+
+Não há passo de seed em produção — os dados fictícios do seed são só para demonstração
+local; em produção os imóveis entram pela importação real da planilha da Caixa
+(`POST /api/v1/importacoes`, pela própria interface).
 
 O plano free do Render hiberna o serviço após ~15min sem tráfego — a primeira requisição
-depois disso demora ~30-50s (cold start). Para uma ferramenta interna de uso esporádico
-costuma ser aceitável; se incomodar, o caminho de migração é para o Google Cloud Run
-(free tier também, cold start bem mais rápido, mas exige conta GCP com billing).
+depois disso demora ~30-50s (cold start, que agora inclui a checagem do alembic). Para uma
+ferramenta interna de uso esporádico costuma ser aceitável; se incomodar, o caminho de
+migração é para o Google Cloud Run (free tier também, cold start bem mais rápido, mas
+exige conta GCP com billing).
 
 ### Frontend (Cloudflare Pages)
 
