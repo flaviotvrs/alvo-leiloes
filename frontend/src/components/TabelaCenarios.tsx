@@ -7,7 +7,7 @@ const ROTULO_GRUPO: Record<string, string> = {
   aquisicao: "Aquisição",
   dividas: "Dívidas anteriores assumidas",
   posse: "Recuperação e posse",
-  carregamento: "Carregamento · 12 meses",
+  carregamento: "Carregamento",
   venda: "Venda",
 };
 
@@ -115,6 +115,7 @@ export function TabelaCenarios({
               <div className={`${GRID} mb-1`}>
                 <span className={`font-mono text-[9.5px] uppercase tracking-[0.13em] ${corSubtotalGrupo(grupo)}`}>
                   {ROTULO_GRUPO[grupo.grupo]}
+                  {grupo.grupo === "carregamento" && ` · ${base.prazo_carregamento_meses} meses`}
                 </span>
                 {cenarios.map((cenario) => {
                   const g = grupoDe(cenario.resultado, grupo.grupo);

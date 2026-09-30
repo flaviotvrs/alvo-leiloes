@@ -16,7 +16,7 @@ class ParametroUsuario(UUIDPk, Base):
 
     usuario_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("usuario.id"), unique=True)
     prazo_carregamento_meses: Mapped[int] = mapped_column(Integer, default=12)
-    comissao_corretor_pct: Mapped[float] = mapped_column(Numeric(5, 2), default=6)
+    comissao_corretor_pct: Mapped[float] = mapped_column(Numeric(5, 2), default=5)
     piso_margem_pct: Mapped[float] = mapped_column(Numeric(5, 2), default=20)
     ir_aliquota_pct: Mapped[float] = mapped_column(Numeric(5, 2), default=15)
     itbi_aliquota_padrao_pct: Mapped[float] = mapped_column(Numeric(5, 2), default=3)

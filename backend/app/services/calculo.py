@@ -93,7 +93,8 @@ def calcular(snapshot: Snapshot) -> Resultado:
 
     registro_bruto, registro_estimativa = buscar_faixa(snapshot.arremate, snapshot.tabelas.emolumentos)
     registro = _r(registro_bruto)
-    aquisicao = _r(snapshot.arremate) + comissao_leiloeiro + itbi + registro
+    outros_gastos = _valor(snapshot, "outros_gastos")
+    aquisicao = _r(snapshot.arremate) + comissao_leiloeiro + itbi + registro + _r(_ou_zero(outros_gastos))
 
     if leiloeiro_assumido:
         premissas.append(
@@ -161,6 +162,14 @@ def calcular(snapshot: Snapshot) -> Resultado:
                 else f"{snapshot.tabelas.versao_emolumentos} · faixa conforme o valor do arremate"
             ),
         ),
+        Linha(
+            chave="outros_gastos",
+            grupo="aquisicao",
+            rotulo="Outros gastos",
+            valor=_r(outros_gastos) if outros_gastos is not None else None,
+            assumido=False,
+            fonte=snapshot.outros_gastos_descricao or "negociações e gastos avulsos (ex.: mudança do morador)",
+        ),
     ]
 
     # ---- Dívidas anteriores assumidas -----------------------------------------------
@@ -202,13 +211,19 @@ def calcular(snapshot: Snapshot) -> Resultado:
     # ---- Carregamento -------------------------------------------------------------------
     iptu_mensal = _valor(snapshot, "iptu_mensal")
     condominio_mensal = _valor(snapshot, "condominio_mensal")
-    prazo = Decimal(snapshot.parametros.prazo_carregamento_meses)
+    # prazo e comissão do corretor podem ser ajustados por imóvel (campo da Ficha) para
+    # simular outro cenário; em branco, valem os parâmetros do usuário
+    prazo_meses = _valor(snapshot, "prazo_carregamento_meses")
+    if prazo_meses is None:
+        prazo_meses = Decimal(snapshot.parametros.prazo_carregamento_meses)
+    prazo_meses = int(prazo_meses)
+    prazo = Decimal(prazo_meses)
     carregamento = _r((_ou_zero(iptu_mensal) + _ou_zero(condominio_mensal)) * prazo)
     linhas_carregamento = [
         Linha(
             chave="iptu_mensal",
             grupo="carregamento",
-            rotulo=f"IPTU mensal × {snapshot.parametros.prazo_carregamento_meses} meses",
+            rotulo=f"IPTU mensal × {prazo_meses} meses",
             valor=_r(iptu_mensal * prazo) if iptu_mensal is not None else None,
             assumido=False,
             fonte=f"R$ {_fmt_moeda(iptu_mensal)} por mês" if iptu_mensal is not None else "em branco vira zero na conta",
@@ -216,7 +231,7 @@ def calcular(snapshot: Snapshot) -> Resultado:
         Linha(
             chave="condominio_mensal",
             grupo="carregamento",
-            rotulo=f"Condomínio mensal × {snapshot.parametros.prazo_carregamento_meses} meses",
+            rotulo=f"Condomínio mensal × {prazo_meses} meses",
             valor=_r(condominio_mensal * prazo) if condominio_mensal is not None else None,
             assumido=False,
             fonte=f"R$ {_fmt_moeda(condominio_mensal)} por mês"
@@ -228,10 +243,15 @@ def calcular(snapshot: Snapshot) -> Resultado:
     investimento = _r(aquisicao + dividas + posse + carregamento)
 
     # ---- Venda ----------------------------------------------------------------------------
+    pct_corretor = _valor(snapshot, "comissao_corretor_pct")
+    if pct_corretor is None:
+        pct_corretor = snapshot.parametros.comissao_corretor_pct
+    # outros gastos entram no custo de aquisição, mas não no custo que abate o ganho de
+    # capital — como a desocupação, não são dedutíveis para o IR
+    base_ir = _r(aquisicao - _r(_ou_zero(outros_gastos)) + _ou_zero(reforma))
     revenda = _valor(snapshot, "valor_mercado")
     if revenda is not None:
-        comissao_corretor = _r(revenda * snapshot.parametros.comissao_corretor_pct / 100)
-        base_ir = _r(aquisicao + _ou_zero(reforma))
+        comissao_corretor = _r(revenda * pct_corretor / 100)
         ganho_capital = max(ZERO, _r(revenda - comissao_corretor - base_ir))
         ir = _r(ganho_capital * snapshot.parametros.ir_aliquota_pct / 100)
         lucro = _r(revenda - comissao_corretor - ir - investimento)
@@ -250,7 +270,6 @@ def calcular(snapshot: Snapshot) -> Resultado:
         margem_revenda_pct = None
         veredito = "incompleto"
         liquido_recebido = ZERO
-        base_ir = _r(aquisicao + _ou_zero(reforma))
 
     linhas_venda = [
         Linha(
@@ -267,7 +286,7 @@ def calcular(snapshot: Snapshot) -> Resultado:
             rotulo="Comissão do corretor",
             valor=-comissao_corretor if revenda is not None else None,
             assumido=False,
-            fonte=f"{_fmt_pct(snapshot.parametros.comissao_corretor_pct)}% sobre a revenda",
+            fonte=f"{_fmt_pct(pct_corretor)}% sobre a revenda",
         ),
         Linha(
             chave="ir_ganho_capital",
@@ -298,6 +317,8 @@ def calcular(snapshot: Snapshot) -> Resultado:
         carregamento=carregamento,
         investimento=investimento,
         comissao_corretor=comissao_corretor,
+        comissao_corretor_pct=pct_corretor,
+        prazo_carregamento_meses=prazo_meses,
         ganho_capital=ganho_capital,
         ir=ir,
         lucro=lucro,

@@ -20,7 +20,7 @@ from app.services.snapshot import montar_snapshot
 router = APIRouter(prefix="/avaliacoes", tags=["avaliacoes"])
 
 # Campos cujo valor é um enum de texto, não um número — README Bloco B (aceita_fgts, ocupacao)
-CHAVES_TEXTO = {"aceita_fgts", "ocupacao"}
+CHAVES_TEXTO = {"aceita_fgts", "ocupacao", "outros_gastos_descricao"}
 
 TRANSICOES_VALIDAS: dict[Etapa, set[Etapa]] = {
     Etapa.TRIAGEM: {Etapa.NAO_AVALIADO, Etapa.DESCARTADO},
@@ -82,6 +82,10 @@ def gravar_campo(
                 existente.valor_numerico = parse_decimal_br(body.valor)
             except ValueError as exc:
                 raise HTTPException(status_code=422, detail=str(exc)) from exc
+            if chave == "prazo_carregamento_meses" and (
+                existente.valor_numerico < 0 or existente.valor_numerico != int(existente.valor_numerico)
+            ):
+                raise HTTPException(status_code=422, detail="Prazo de carregamento deve ser um número inteiro de meses")
             existente.valor_texto = None
         existente.origem = OrigemCampo.MANUAL
         existente.fonte_declarada = body.fonte_declarada

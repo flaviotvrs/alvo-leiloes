@@ -171,7 +171,7 @@ status de importação aparecem.
 a tabela vigente na data.
 
 `parametro_usuario`: `usuario_id`, `prazo_carregamento_meses` (padrão 12),
-`comissao_corretor_pct` (padrão 6), `piso_margem_pct` (padrão 20), `ir_aliquota_pct` (padrão 15),
+`comissao_corretor_pct` (padrão 5), `piso_margem_pct` (padrão 20), `ir_aliquota_pct` (padrão 15),
 `itbi_aliquota_padrao_pct` (padrão 3), `comissao_leiloeiro_padrao_pct` (padrão 5).
 
 Os quatro últimos são os **valores de palpite**. Ficarem em tabela, e não no código, é o que

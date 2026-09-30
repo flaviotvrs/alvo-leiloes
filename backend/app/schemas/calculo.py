@@ -52,6 +52,7 @@ class Snapshot(BaseModel):
     parametros: ParametrosSnapshot
     tabelas: TabelasSnapshot
     dividas_sao_do_arrematante: bool = True
+    outros_gastos_descricao: str | None = None
 
 
 class Linha(BaseModel):
@@ -78,6 +79,8 @@ class Resultado(BaseModel):
     carregamento: Decimal
     investimento: Decimal
     comissao_corretor: Decimal
+    comissao_corretor_pct: Decimal
+    prazo_carregamento_meses: int
     ganho_capital: Decimal
     ir: Decimal
     lucro: Decimal | None

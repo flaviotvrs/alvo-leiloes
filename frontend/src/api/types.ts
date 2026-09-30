@@ -147,6 +147,8 @@ export interface Resultado {
   carregamento: string;
   investimento: string;
   comissao_corretor: string;
+  comissao_corretor_pct: string;
+  prazo_carregamento_meses: number;
   ganho_capital: string;
   ir: string;
   lucro: string | null;
