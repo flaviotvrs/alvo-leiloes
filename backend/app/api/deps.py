@@ -32,6 +32,6 @@ def get_current_usuario(
     if usuario is None:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Nenhum usuário seedado — rode `python -m app.seeds.seed`",
+            detail="Nenhum usuário cadastrado — rode `python -m app.seeds.bootstrap`",
         )
     return usuario

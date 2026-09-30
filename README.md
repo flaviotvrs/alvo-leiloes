@@ -115,7 +115,7 @@ alvo-leiloes/
 │       ├── services/        # calculo.py (motor puro), snapshot.py, numeros.py, ...
 │       ├── importers/       # caixa.py (Zukerman: MVP1, ainda não implementado)
 │       ├── api/v1/          # 1 router por recurso
-│       └── seeds/           # seed.py + fixtures/ (dados fictícios de dev)
+│       └── seeds/           # bootstrap.py (real, usado em prod) + seed.py (dev, com dado fictício)
 └── frontend/
     └── src/
         ├── pages/           # Triagem.tsx, Ficha.tsx, Funil.tsx
@@ -142,8 +142,9 @@ Infra de baixo custo para uma ferramenta interna de baixo tráfego:
    raiz e cria o serviço `alvo-leiloes-backend` (Docker, build a partir de `backend/`).
 3. Preencha as env vars pedidas pelo blueprint (não têm valor padrão, por serem
    sensíveis/específicas do ambiente):
-   - `DATABASE_URL` — a connection string pooled do Neon, no formato
-     `postgresql+psycopg://usuario:senha@ep-xxx-pooler.regiao.neon.tech/alvo_leiloes?sslmode=require`
+   - `DATABASE_URL` — a connection string pooled do Neon (host termina em `-pooler`); pode
+     colar exatamente como o Neon fornece (`postgresql://...`) — o `Settings` normaliza
+     para o driver `psycopg` 3 automaticamente, não precisa editar o prefixo
    - `API_BEARER_TOKEN` — um token novo, diferente do de dev
    - `ALLOWED_ORIGINS` — a URL do frontend em produção (ex.:
      `https://alvo-leiloes.pages.dev`); pode ter mais de uma, separadas por vírgula
@@ -152,10 +153,18 @@ Infra de baixo custo para uma ferramenta interna de baixo tráfego:
    antes de iniciar o `uvicorn`, a cada boot do container — deploy novo ou wake-up depois
    do cold start. É idempotente (não faz nada se já estiver em dia) e, se uma migration
    falhar, o container não chega a servir tráfego com schema desatualizado.
-
-Não há passo de seed em produção — os dados fictícios do seed são só para demonstração
-local; em produção os imóveis entram pela importação real da planilha da Caixa
-(`POST /api/v1/importacoes`, pela própria interface).
+5. **Bootstrap (uma vez, antes do primeiro uso):** todo endpoint autenticado depende de
+   existir um `Usuario` na base (`get_current_usuario` em `backend/app/api/deps.py`) — sem
+   isso, toda chamada dá 500. Como o plano free não tem Shell no serviço do Render, rode
+   isso da sua máquina, apontando `DATABASE_URL` para o Neon de produção:
+   ```bash
+   cd backend
+   DATABASE_URL="<connection string do Neon>" uv run python -m app.seeds.bootstrap
+   ```
+   Isso cria o usuário único do MVP1, carrega as referências reais (ITBI, emolumentos) e os
+   parâmetros padrão — nada fictício. É idempotente, pode rodar de novo sem duplicar nada.
+   Depois disso, os imóveis entram pela importação real da planilha da Caixa
+   (`POST /api/v1/importacoes`, pela própria interface).
 
 O plano free do Render hiberna o serviço após ~15min sem tráfego — a primeira requisição
 depois disso demora ~30-50s (cold start, que agora inclui a checagem do alembic). Para uma

@@ -1,6 +1,9 @@
-"""Seed de desenvolvimento: referências (ITBI, emolumentos), parâmetros padrão, usuário de
-dev, e uma importação real da planilha fictícia da Caixa — para navegar as 3 telas com dado
-plausível sem a planilha real. Rode com `uv run python -m app.seeds.seed`."""
+"""Seed de desenvolvimento: bootstrap (usuário, referências, parâmetros) + uma importação
+real da planilha fictícia da Caixa — para navegar as 3 telas com dado plausível sem a
+planilha real. Rode com `uv run python -m app.seeds.seed`.
+
+Em produção, use `app.seeds.bootstrap` em vez deste módulo — ele não inclui a planilha
+fictícia."""
 
 from decimal import Decimal
 from pathlib import Path
@@ -11,32 +14,11 @@ from app.models.avaliacao import Avaliacao
 from app.models.campo_avaliacao import CampoAvaliacao
 from app.models.enums import Etapa, OrigemCampo
 from app.models.lote_leilao import LoteLeilao
-from app.models.parametro import ParametroUsuario
 from app.models.usuario import Usuario
-from app.seeds.referencias import carregar_emolumentos, carregar_itbi
+from app.seeds.bootstrap import bootstrap
 from app.services.avaliacoes import obter_ou_criar_avaliacao
 
 FIXTURE_CAIXA = Path(__file__).parent / "fixtures" / "sample_caixa.csv"
-
-USUARIO_DEV_EMAIL = "flaviotvrs@gmail.com"
-USUARIO_DEV_NOME = "Flavio"
-
-
-def _usuario_dev(db):
-    usuario = db.query(Usuario).filter_by(email=USUARIO_DEV_EMAIL).one_or_none()
-    if usuario is None:
-        usuario = Usuario(nome=USUARIO_DEV_NOME, email=USUARIO_DEV_EMAIL)
-        db.add(usuario)
-        db.commit()
-        db.refresh(usuario)
-    return usuario
-
-
-def _parametros_padrao(db, usuario: Usuario) -> None:
-    if db.query(ParametroUsuario).filter_by(usuario_id=usuario.id).first():
-        return
-    db.add(ParametroUsuario(usuario_id=usuario.id))
-    db.commit()
 
 
 def _avancar_funil_de_exemplo(db, usuario: Usuario) -> None:
@@ -118,12 +100,7 @@ def _avancar_funil_de_exemplo(db, usuario: Usuario) -> None:
 def seed() -> None:
     db = SessionLocal()
     try:
-        carregar_itbi(db)
-        carregar_emolumentos(db)
-        db.commit()
-
-        usuario = _usuario_dev(db)
-        _parametros_padrao(db, usuario)
+        usuario = bootstrap(db)
 
         importar_caixa(db, FIXTURE_CAIXA, executada_por=usuario.id)
         _avancar_funil_de_exemplo(db, usuario)
