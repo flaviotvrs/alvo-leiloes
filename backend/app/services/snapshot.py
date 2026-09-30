@@ -34,10 +34,18 @@ def montar_snapshot(db: Session, avaliacao: Avaliacao) -> Snapshot:
     parametros_db = db.query(ParametroUsuario).filter_by(usuario_id=avaliacao.usuario_id).one_or_none()
     if parametros_db is None:
         parametros_db = db.query(ParametroUsuario).first()
+    # margem por imóvel substitui o piso global do usuário para este snapshot — também vale
+    # como veredito aprovado/reprovado daquele imóvel (ver docs/requisitos/mvp1-ajustes/
+    # 03-lance-maximo-sugerido.md)
+    piso_margem_efetivo = (
+        avaliacao.margem_desejada_pct
+        if avaliacao.margem_desejada_pct is not None
+        else parametros_db.piso_margem_pct
+    )
     parametros = ParametrosSnapshot(
         prazo_carregamento_meses=parametros_db.prazo_carregamento_meses,
         comissao_corretor_pct=parametros_db.comissao_corretor_pct,
-        piso_margem_pct=parametros_db.piso_margem_pct,
+        piso_margem_pct=piso_margem_efetivo,
         ir_aliquota_pct=parametros_db.ir_aliquota_pct,
         itbi_aliquota_padrao_pct=parametros_db.itbi_aliquota_padrao_pct,
         comissao_leiloeiro_padrao_pct=parametros_db.comissao_leiloeiro_padrao_pct,

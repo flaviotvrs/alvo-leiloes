@@ -368,8 +368,9 @@ linhas em `grid minmax(0,1fr) auto`, cada linha com rótulo 13px, hint 11.5px e 
 4. **Carregamento · 12 meses** (cor `amber` se > 0) — "IPTU mensal × 12" com hint
    "R$ 285 por mês" · "Condomínio mensal × 12" com hint "em branco vira zero na conta".
 5. **Venda** (cor `green`, subtotal = líquido recebido) — Valor de revenda · Comissão do
-   corretor · IR sobre ganho de capital, com o hint mostrando a base: "15% sobre ganho de
-   R$ 100.992 (custo de aquisição + reforma como base)".
+   corretor · IR sobre ganho de capital, com o hint mostrando a base: "15% sobre o ganho de
+   capital (revenda – custo de aquisição + reforma)". Hints não citam valores que dependem do
+   arremate, porque a conta mostra três cenários de lance lado a lado.
 
 Toda linha cujo campo esteja vazio mostra "em branco" em `label-soft` em vez de `R$ 0` — o
 usuário precisa distinguir "é zero" de "não sei ainda".

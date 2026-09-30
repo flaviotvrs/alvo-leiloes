@@ -26,6 +26,7 @@ from app.schemas.api import (
 from app.schemas.api import AvaliacaoDTO
 from app.services.avaliacoes import obter_ou_criar_avaliacao, obter_ou_criar_avaliacoes
 from app.services.calculo import calcular
+from app.services.lance_maximo import calcular_lance_maximo
 from app.services.resumo_campos import CHAVES_RESUMO, resumo_de_varias_avaliacoes
 from app.services.snapshot import montar_snapshot
 
@@ -206,7 +207,19 @@ def ficha(
         for c in campos_db
     }
 
-    resultado = calcular(montar_snapshot(db, avaliacao))
+    snapshot = montar_snapshot(db, avaliacao)
+    resultado = calcular(snapshot)
+    lance_maximo_sugerido = calcular_lance_maximo(snapshot)
+    resultado_lance_manual = (
+        calcular(snapshot.model_copy(update={"arremate": avaliacao.teto_lance}))
+        if avaliacao.teto_lance is not None
+        else None
+    )
+    resultado_lance_maximo = (
+        calcular(snapshot.model_copy(update={"arremate": lance_maximo_sugerido}))
+        if lance_maximo_sugerido
+        else None
+    )
 
     return FichaResponse(
         imovel=ImovelReadOnly(
@@ -245,9 +258,13 @@ def ficha(
             etapa_desde=avaliacao.etapa_desde,
             motivo_descarte=avaliacao.motivo_descarte,
             teto_lance=avaliacao.teto_lance,
+            margem_desejada_pct=avaliacao.margem_desejada_pct,
             anotacoes=avaliacao.anotacoes,
             checklist=avaliacao.checklist,
         ),
         campos=campos,
         resultado_calculo=resultado,
+        lance_maximo_sugerido=lance_maximo_sugerido,
+        resultado_lance_manual=resultado_lance_manual,
+        resultado_lance_maximo=resultado_lance_maximo,
     )
